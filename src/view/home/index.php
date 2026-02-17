@@ -9,11 +9,12 @@
                     <div class="card mb-0 " style="text-align: center;">
                         <h5 class="card-header border-info"><strong>Consulta Ambulatoria</strong></h5>
                         <div class="image-container" style="text-align: center;">
-                            <img src="/public/dist/img/fondoPrincipal.png" alt="Imagen centrada"
-                                style="width: 70%; height: auto;">
+                            <img src="..\public\dist\img\fondoPrincipal.png" alt="Imagen centrada"
+                                style="width: 80%; height: auto;">
                         </div>
-                        <div class="px-3 pb-3">
-                            <p class="card-text" style="text-align: justify; line-height: 1.6;">
+                        <div class="card-body mt-0"
+                            style="position: relative; width: 100%; height: 400px; background-size: contain;">
+                            <p class="card-text" style="text-align: justify;">
 
                                 Esta sección del sistema centraliza los procesos clave de gestión de información de
                                 los pacientes, incluyendo el manejo de sus expedientes clínicos, consultas
@@ -22,14 +23,29 @@
                                 Sección de Archivo o en los consultorios.
 
                             </p>
+
                         </div>
+
                     </div>
-                </div>              
+
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+
+                    </ol>
+                </div>
             </div>
         </div><!-- /.container-fluid -->
     </section>
 
     <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+
+            <!-- /.row -->
+        </div><!-- /.container-fluid -->
+    </section>
+    <!-- /.content -->
 </div>
 <!-- /.content-wrapper -->
 

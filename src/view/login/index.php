@@ -10,13 +10,13 @@
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="/public/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="../../public/plugins/fontawesome-free/css/all.min.css">
     <!-- icheck bootstrap -->
-    <link rel="stylesheet" href="/public/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+    <link rel="stylesheet" href="../../public/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
     <!-- Theme style -->
-    <link rel="stylesheet" href="/public/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="../../public/dist/css/adminlte.min.css">
     <!-- Toastr -->
-    <link rel="stylesheet" href="/public/plugins/toastr/toastr.min.css">
+    <link rel="stylesheet" href="../../public/plugins/toastr/toastr.min.css">
     <!-- Custom CSS -->
     <style>
         .logo-sicam {
@@ -89,7 +89,21 @@
                         </div>
                         <!-- /.col -->
                     </div>
-                </form>              
+                </form>
+                
+                <!-- Separador visual -->
+                <div class="divider">
+                    <span>O</span>
+                </div>
+                
+                <!-- Botón de acceso como invitado -->
+                <div class="row">
+                    <div class="col-12">
+                        <button id="accesoInvitado" class="btn btn-outline-secondary btn-block">
+                            <i class="fas fa-user-clock mr-2"></i>Acceder como Invitado
+                        </button>
+                    </div>
+                </div>
                 
                 <div class="social-auth-links text-center mt-2 mb-3">
                     <span>
@@ -105,13 +119,13 @@
     <!-- /.login-box -->
 
     <!-- jQuery -->
-    <script src="/public/plugins/jquery/jquery.min.js"></script>
+    <script src="../../public/plugins/jquery/jquery.min.js"></script>
     <!-- Bootstrap 4 -->
-    <script src="/public/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="../../public/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- AdminLTE App -->
-    <script src="/public/dist/js/adminlte.min.js"></script>
+    <script src="../../public/dist/js/adminlte.min.js"></script>
     <!-- Toastr -->
-    <script src="/public/plugins/toastr/toastr.min.js"></script>
+    <script src="../../public/plugins/toastr/toastr.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
             // Manejo del formulario de login normal
@@ -124,7 +138,7 @@
 
                 // Realizar la solicitud AJAX
                 $.ajax({
-                    url: '/login',
+                    url: '/backend/ingresar.php',
                     method: 'POST',
                     data: $(this).serialize(), // Serializar los datos del formulario
                     success: function(data) {
@@ -133,6 +147,13 @@
                             if (response.status == "success") {
                                 // Redirigir al usuario a la página de inicio si la autenticación es exitosa
                                 window.location.href = '/home';
+                            } else if (response.status == "cambiarpass") {
+                                location.href = '/usuarios/password';
+                            } else if (response.status == "reseteo") {
+                                location.href = '/usuarios/reseteo';
+                            } else if (response.status == "desactivado") {
+                                // Mostrar un mensaje de error si la autenticación falla
+                                toastr.error("ERROR: en el Usuario esta desactivado");
                             } else {
                                 // Mostrar un mensaje de error si la autenticación falla
                                 toastr.error("ERROR: en el Usuario o la Contraseña");
@@ -153,7 +174,46 @@
                 });
             });
             
-            
+            // Manejo del acceso como invitado
+            $('#accesoInvitado').click(function(e) {
+                e.preventDefault();
+                var $button = $(this);
+                
+                // Desactivar el botón durante la solicitud
+                $button.prop("disabled", true);
+                
+                // Realizar solicitud para acceso como invitado
+                $.ajax({
+                    url: '/backend/ingresar.php',
+                    method: 'POST',
+                    data: {
+                        accion: 'ingresar_invitado'
+                    },
+                    success: function(data) {
+                        try {
+                            var response = JSON.parse(data);
+                            if (response.status == "success") {
+                                // Redirigir al usuario a la página de inicio
+                                window.location.href = '/home';
+                            } else {
+                                // Mostrar un mensaje de error
+                                toastr.error("ERROR: No se pudo acceder como invitado");
+                            }
+                        } catch (error) {
+                            // Manejar errores de análisis JSON
+                            toastr.error("Advertencia: Ocurrió un error al procesar la respuesta del servidor. Por favor, contacte con el administrador del sistema.");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Manejar errores de la solicitud AJAX
+                        toastr.error("Advertencia: Ocurrió un error al comunicarse con el servidor. Por favor, contacte con el administrador de la red.");
+                    },
+                    complete: function() {
+                        // Reactivar el botón después de completar la solicitud
+                        $button.prop("disabled", false);
+                    }
+                });
+            });
         });
     </script>
 </body>

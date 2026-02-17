@@ -1,138 +1,141 @@
 <?php
-// MVC-style router with support for static and dynamic routes, and custom error views
 
-require_once __DIR__ . '/core/connection.php';
-
-// ==============================
-// 1. ROUTE DEFINITIONS
-// ==============================
-
-$routes = [
-    'GET' => [
-        // User system routes
-        '/'                     => ['controller' => 'UserController', 'method' => 'show'],
-        '/logout'               => ['controller' => 'UserController', 'method' => 'logout'],
-        '/home'                 => ['controller' => 'UserController', 'method' => 'home'],
-        // Patient routes
-        '/patients'             => ['controller' => 'PatientController', 'method' => 'show'],
-        '/patients/list'        => ['controller' => 'PatientController', 'method' => 'getFHIRPatients'],
-        '/patient'              => ['controller' => 'PatientController', 'method' => 'showPatient'],
-        '/paciente/create'      => ['controller' => 'PatientController', 'method' => 'savePatient'],
-
-    ],
-    'POST' => [
-        // User system actions
-        '/login'                => ['controller' => 'UserController', 'method' => 'login'],
-        '/logout'               => ['controller' => 'UserController', 'method' => 'logout'],
-        '/change'               => ['controller' => 'UserController', 'method' => 'change'],
-    ],
-    'PUT' => [
-        // Questionnaire section updates
-        // Add PUT routes here when needed
-    ],
-];
-
-// ==============================
-// 2. ERROR VIEW DEFINITIONS
-// ==============================
-
-$errorViews = [
-    '404' => __DIR__ . '/view/errors/404.php',
-    '500' => __DIR__ . '/view/errors/500.php',
-];
-
-// ==============================
-// 3. GET CURRENT ROUTE AND METHOD
-// ==============================
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$requestUri = rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/');
-
-// ==============================
-// 4. FUNCTION TO SHOW ERROR VIEW
-// ==============================
-
-function showErrorView($errorCode, $errorViews)
+// Función para manejar las rutas
+function routeHandler($method, $route)
 {
-    http_response_code($errorCode);
-    $errorFile = $errorViews[$errorCode] ?? null;
+    $staticRoutes = [
+        'GET' => [
+            '/' => '/view/login/index.php',
+            '/home' => '/view/home/index.php',
+            '/salir' => '/view/login/salir.php',
+            '/paciente/view' => '/view/rda/viewer3.php',
+            '/paciente/ips' => '/view/rda/ips.php',
+             '/consultas/create/paciente' => '/view/track1/create_paciente.php',
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            //'/consultas/create/vacunacion' => '/view/consultas/create_vacunacion.php',
+            '/paciente/search' => '/view/paciente/index.php',
+            '/paciente/view' => '/view/track1/viewer3.php',
+            '/paciente/ips' => '/view/paciente/ips.php',
+            '/itti67/search' => '/view/paciente/ips2.php',
+            '/ips/view' => '/view/paciente/viewer2.php',
+            //'/icvp/vaccine' => '/view/ICVP/create.php',
+            '/paciente/translate' => '/view/paciente/translate.php',
+            '/paciente/lookup' => '/view/paciente/lookup.php',
+            '/paciente/vhl_generar' => '/view/paciente/vhl_generar.php',
+            '/paciente/vhl_ver' => '/view/paciente/vhl_ver.php',
+            '/paciente/ips/icvp' => '/view/paciente/dvc_generar.php',
+            '/paciente/dvc_ver' => '/view/paciente/dvc_ver.php',
+            '/vacunaciones/create' => '/view/vacunaciones/create.php',
+            '/qualification/iti-78/search' => '/view/qualification/iti-78.php',
+            '/qualification/iti-104/create' => '/view/qualification/iti-104.php',
+            //pacientes
+            '/pacientes/list' => '/view/pacientes/list.php',
+            '/pacientes/create' => '/view/pacientes/create.php',
+            '/pacientes/edit' => '/view/pacientes/edit.php',
+            //profesional
+            '/profesional/list' => '/view/profesional/list.php',
+            '/profesional/create' => '/view/profesional/create.php',
+            '/profesional/edit' => '/view/profesional/edit.php',
+            //organizacion
+            '/organizacion/list' => '/view/organizacion/list.php',
+            '/organizacion/create' => '/view/organizacion/create.php',
+            '/organizacion/edit' => '/view/organizacion/edit.php',
+            //fhir
+            '/fhir/list' => '/view/fhir/index.php',
+            '/fhir/create' => '/view/fhir/create.php',
 
-    if ($errorFile && file_exists($errorFile)) {
-        require $errorFile;
-    } else {
-        $errorMessage = $errorCode === 404 ? 'Page not found' : 'Server error';
-        echo "<!DOCTYPE html>
-        <html><head><title>Error $errorCode</title>
-        <style>
-            body { font-family: Arial; text-align: center; padding: 50px; }
-            h1 { font-size: 50px; } 
-            p { font-size: 20px; }
-        </style></head><body>
-        <h1>Error $errorCode</h1>
-        <p>$errorMessage</p>
-        </body></html>";
+            //Datos
+            '/datos/personal' => '/view/datos/personal.php',
+            '/datos/paciente' => '/view/datos/paciente.php',
+            '/datos/servicio' => '/view/datos/servicio.php',
+        ],
+        'POST' => [
+            // Define tus rutas POST aquí
+        ],
+        'PUT' => [
+            // Define tus rutas PUT aquí
+        ],
+        'DELETE' => [
+            // Define tus rutas DELETE aquí
+        ]
+    ];
+
+    $dynamicRoutes = [
+        'GET' => [          
+            '/ips/view/([A-Za-z0-9-]+)' => '/view/rda/viewer3.php',
+            '/ips/bundle/([A-Za-z0-9-]+)' => '/view/rda/viewer3.php'           
+
+        ],
+        'POST' => [
+            // Define tus rutas POST dinámicas aquí
+        ],
+        'PUT' => [
+            // Define tus rutas PUT dinámicas aquí
+        ],
+        'DELETE' => [
+            // Define tus rutas DELETE dinámicas aquí
+        ]
+    ];
+
+    // Verificar si la ruta es una ruta estática válida
+    if (isset($staticRoutes[$method]) && array_key_exists($route, $staticRoutes[$method])) {
+        require getDocumentRoot() . $staticRoutes[$method][$route];
+        return;
     }
 
-    exit;
-}
-
-// ==============================
-// 5. FUNCTION TO LOAD CONTROLLER AND EXECUTE METHOD
-// ==============================
-
-function dispatch($controllerName, $methodName, $params = [], $errorViews)
-{
-    $controllerFile = __DIR__ . "/controllers/{$controllerName}.php";
-
-    if (!file_exists($controllerFile)) {
-        showErrorView(500, $errorViews);
-    }
-
-    require_once $controllerFile;
-
-    if (!class_exists($controllerName)) {
-        showErrorView(500, $errorViews);
-    }
-
-    $controller = new $controllerName();
-
-    if (!method_exists($controller, $methodName)) {
-        showErrorView(500, $errorViews);
-    }
-
-    try {
-        call_user_func_array([$controller, $methodName], $params);
-    } catch (Exception $e) {
-        error_log("Controller error: " . $e->getMessage());
-        showErrorView(500, $errorViews);
-    }
-}
-
-// ==============================
-// 6. ROUTE RESOLUTION
-// ==============================
-
-// Check for exact match first
-if (isset($routes[$method][$requestUri])) {
-    $route = $routes[$method][$requestUri];
-    dispatch($route['controller'], $route['method'], [], $errorViews);
-    exit;
-}
-
-// Check for dynamic route matches
-if (isset($routes[$method])) {
-    foreach ($routes[$method] as $routePattern => $routeData) {
-        // Replace {param} with regex for dynamic segment
-        $pattern = preg_replace('#\{[a-zA-Z_][a-zA-Z0-9_]*\}#', '([^/]+)', $routePattern);
-        $pattern = "#^" . rtrim($pattern, '/') . "$#";
-        
-        if (preg_match($pattern, $requestUri, $matches)) {
-            array_shift($matches); // Remove full match
-            dispatch($routeData['controller'], $routeData['method'], $matches, $errorViews);
-            exit;
+    // Verificar si la ruta es una ruta dinámica válida
+    if (isset($dynamicRoutes[$method])) {
+        foreach ($dynamicRoutes[$method] as $pattern => $file) {
+            // Convertir la ruta a un patrón de expresión regular
+            $pattern = str_replace('/', '\/', $pattern);
+            if (preg_match('/^' . $pattern . '$/', $route, $matches)) {
+                array_shift($matches); // Eliminar el primer elemento que es la cadena completa
+                // Definir variables basadas en los grupos de captura
+                foreach ($matches as $index => $value) {
+                    $_GET['param' . ($index + 1)] = $value;
+                }
+                require getDocumentRoot() . $file;
+                return;
+            }
         }
     }
+
+    // Mostrar un error 404 si la ruta no es válida
+    header($_SERVER["SERVER_PROTOCOL"] . " 404 Not Found", true, 404);
+    echo '404 - Page not found';
 }
 
-// If no match found, show 404
-showErrorView(404, $errorViews);
+// Función para obtener el DOCUMENT_ROOT
+function getDocumentRoot()
+{
+    return rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+}
+
+// Obtener la ruta actual de la solicitud (usando la variable $_SERVER['REQUEST_URI'])
+$current_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+// Obtener el método de la solicitud
+$request_method = $_SERVER['REQUEST_METHOD'];
+
+// Manejar la ruta y el método
+routeHandler($request_method, $current_uri);
