@@ -13,3 +13,6 @@ vendor/
 
 # O ignorar todos los archivos en el directorio apache/log/
 # apache/log/*
+
+#INGNORE CONFIG DE CORE
+src/core/config.php
