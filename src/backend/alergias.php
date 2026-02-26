@@ -1,7 +1,7 @@
 <?php
 session_start();
 include('../core/connection.php');
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 // Check if user is logged in
 if (isset($_SESSION['idUsuario'])) {
@@ -11,14 +11,12 @@ if (isset($_SESSION['idUsuario'])) {
 
     // Get the search term (can be code or name)
     $term = isset($_POST['term']) ? '%' . strtoupper($_POST['term']) . '%' : '';
-    $regional = false;
 
     try { 
 
       // Prepare the SQL statement with UPPER() to ensure all data is in uppercase
-      $sql = 'SELECT UPPER(code) AS codigo, UPPER(alergias) AS nombre, type FROM alergias WHERE regional = :regional AND (UPPER(code) LIKE :term OR UPPER(alergias) LIKE :term)';
+      $sql = 'SELECT UPPER(local_code) AS codigo, UPPER(local_term) AS nombre, type FROM allergies WHERE (UPPER(code) LIKE :term OR UPPER(alergias) LIKE :term)';
       $stmt = $dbconn->prepare($sql);
-      $stmt->bindParam(':regional', $regional, PDO::PARAM_BOOL);
       $stmt->bindParam(':term', $term);
 
       // Execute the statement
