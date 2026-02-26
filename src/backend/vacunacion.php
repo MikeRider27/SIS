@@ -5,7 +5,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 include('/var/www/html/core/connection.php');
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 if (isset($_SESSION['idUsuario'])) {
 

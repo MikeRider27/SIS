@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 include('../core/connection.php');
 $dbconn = getConnection();
-$dbconnFHIR = getConnectionFHIR();
+$dbconnFHIR = getConnection();
 include('./services/generateIPS.php');
 require_once('/var/www/html/vendor/autoload.php');
 

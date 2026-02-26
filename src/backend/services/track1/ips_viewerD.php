@@ -4,7 +4,7 @@ error_reporting(E_ALL);
 header('Content-Type: application/json; charset=UTF-8');
 
 require_once('/var/www/html/core/connection.php');
-$dbconnFHIR = getConnectionFHIR();
+$dbconnFHIR = getConnection();
 
 $identifier = isset($_GET['identifier']) ? trim($_GET['identifier']) : '';
 

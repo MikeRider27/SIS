@@ -3,7 +3,7 @@ include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
 // Obtener la conexión a la base de datos (no se usa aquí, pero se mantiene por consistencia)
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 $id = isset($_GET['param1']) ? $_GET['param1'] : '';
 ?>

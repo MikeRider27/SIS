@@ -2,7 +2,7 @@
 include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 ?>
 <div class="content-wrapper">
     <section class="content-header">

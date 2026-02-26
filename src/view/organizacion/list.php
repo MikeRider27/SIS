@@ -2,15 +2,20 @@
 include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
-// Conexión FHIR
-$dbconn = getConnectionFHIR();
+// Obtener la conexión a la base de datos
+$dbconn = getConnection();
 ?>
 
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
     <section class="content-header">
-        <div class="container-fluid text-center">
-            <h1><strong>Viewer de Organizaciones FHIR</strong></h1>
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12 text-center">
+                    <h1 class="display-5 fw-bold text-primary">Viewer de Organizaciones FHIR</h1>
+                    <p class="lead text-muted">Sistema de visualización y gestión de organizaciones según estándar FHIR</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -18,8 +23,8 @@ $dbconn = getConnectionFHIR();
         <div class="container-fluid">
             <div class="row">
 
-                <!-- Panel izquierdo - Lista de Organizaciones -->
-                <div class="col-lg-6 left-panel">
+                <!-- Panel izquierdo - Lista de organizaciones -->
+                <div class="col-lg-6">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white">
                             <h5 class="card-title mb-0">
@@ -27,18 +32,16 @@ $dbconn = getConnectionFHIR();
                             </h5>
                         </div>
                         <div class="card-body">
-                            <!-- Filtro de búsqueda -->
                            
                             
                             <!-- Contador de resultados -->
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <small class="text-muted" id="contadorResultados">Cargando organizaciones...</small>
-                                
+                                <small class="text-muted" id="contadorResultados">Cargando organizaciones...</small>                              
                             </div>
 
-                            <!-- DataTable de organizaciones -->
-                            <div class="table-container">
-                                <table id="tablaOrg" class="table table-striped table-hover" style="width:100%">
+                            <!-- Tabla de organizaciones con DataTables -->
+                            <div class="table-container" style="height: calc(100% - 110px); overflow: auto;">
+                                <table id="tablaOrg" class="table table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Código</th>
@@ -47,7 +50,9 @@ $dbconn = getConnectionFHIR();
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
-                                    <tbody></tbody>
+                                    <tbody>
+                                        <!-- Los datos se cargan via AJAX -->
+                                    </tbody>
                                 </table>
                             </div>
                         </div>
@@ -55,7 +60,7 @@ $dbconn = getConnectionFHIR();
                 </div>
 
                 <!-- Panel derecho - Detalle JSON -->
-                <div class="col-lg-6 right-panel">
+                <div class="col-lg-6">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-dark text-white">
                             <h5 class="card-title mb-0">
@@ -65,11 +70,11 @@ $dbconn = getConnectionFHIR();
                         <div class="card-body d-flex flex-column">
                             <div class="alert alert-info d-flex align-items-center mb-3">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <small>Seleccione una organización para visualizar su recurso FHIR completo</small>
+                                <small>Seleccione un paciente para visualizar su recurso FHIR completo</small>
                             </div>
                             
                             <div class="json-container flex-grow-1">
-                                <textarea id="jsonOrg" class="d-none"></textarea>
+                                <textarea id="jsonDisplay" class="d-none"></textarea>
                             </div>
                             
                             <div class="mt-3">
@@ -156,20 +161,6 @@ include('/var/www/html/view/includes/footer.php');
     --border-radius: 8px;
 }
 
-.content-wrapper {
-    background-color: #f8f9fa;
-    min-height: calc(100vh - 56px);
-}
-
-.content-header {
-    padding: 15px 0;
-}
-
-.left-panel, .right-panel {
-    height: calc(100vh - 150px);
-    overflow-y: auto;
-}
-
 .card {
     border: none;
     border-radius: var(--border-radius);
@@ -180,12 +171,9 @@ include('/var/www/html/view/includes/footer.php');
 .card-header {
     border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
     border-bottom: 1px solid rgba(0,0,0,0.1);
-    padding: 12px 15px;
 }
 
 .table-container {
-    height: calc(100% - 110px);
-    overflow-y: auto;
     border: 1px solid #e3e6f0;
     border-radius: var(--border-radius);
 }
@@ -201,7 +189,6 @@ include('/var/www/html/view/includes/footer.php');
 
 #tablaOrg tbody tr:hover {
     background-color: #f8f9fa;
-    transform: translateX(2px);
 }
 
 #tablaOrg tbody tr.selected {
@@ -209,22 +196,25 @@ include('/var/www/html/view/includes/footer.php');
     border-left: 3px solid var(--primary-color);
 }
 
-.organization-codigo {
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.cedula-col {
     font-weight: 600;
     color: var(--primary-color);
 }
 
-.organization-name {
-    color: var(--dark);
-}
-
-.organization-actions {
+.actions-col {
     white-space: nowrap;
 }
 
 .btn-sm {
     padding: 4px 8px;
     font-size: 0.8rem;
+    margin: 0 2px;
 }
 
 .CodeMirror {
@@ -260,15 +250,6 @@ include('/var/www/html/view/includes/footer.php');
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-.input-group-text {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-}
-
-.form-control {
-    border-radius: var(--border-radius);
-}
-
 .dataTables_wrapper .dataTables_length,
 .dataTables_wrapper .dataTables_filter,
 .dataTables_wrapper .dataTables_info,
@@ -276,25 +257,13 @@ include('/var/www/html/view/includes/footer.php');
     padding: 10px;
 }
 
-.dataTables_wrapper .dataTables_filter input {
-    border-radius: var(--border-radius);
-}
-
 @media (max-width: 992px) {
     .col-lg-6 {
         margin-bottom: 20px;
     }
     
-    .left-panel, .right-panel {
-        height: 50vh;
-    }
-    
     .CodeMirror {
         height: calc(100% - 120px);
-    }
-    
-    .table-container {
-        height: calc(100% - 110px);
     }
 }
 </style>
@@ -310,7 +279,7 @@ $(document).ready(function(){
     };
 
     // Inicializar CodeMirror
-    var editor = CodeMirror.fromTextArea(document.getElementById("jsonOrg"), {
+    var editor = CodeMirror.fromTextArea(document.getElementById("jsonDisplay"), {
         lineNumbers: true,
         mode: "application/json",
         theme: "material",
@@ -318,7 +287,7 @@ $(document).ready(function(){
         lineWrapping: true
     });
 
-    let orgActual = null;
+    let pacienteActual = null;
     let jsonOriginal = null;
     let dataTable = null;
 
@@ -331,166 +300,205 @@ $(document).ready(function(){
         }
     }
 
-    // Función para inicializar DataTable
-    function inicializarDataTable() {
-        if (dataTable) {
-            dataTable.destroy();
-        }
-
-        dataTable = $('#tablaOrg').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
-            },
-            "paging": true,
-            "pageLength": 10,
-            "lengthChange": true,
-            "searching": true,
-            "ordering": true,
-            "info": true,
-            "autoWidth": false,
-            "responsive": true,
-            "order": [[2, 'desc']], // Ordenar por fecha de actualización descendente
-            "columns": [
-                { 
-                    "data": "codigo",
-                    "className": "organization-codigo"
-                },
-                { 
-                    "data": "nombre",
-                    "className": "organization-name"
-                },
-                { 
-                    "data": "fechaActualizacion",
-                    "className": "text-muted",
-                    "width": "120px"
-                },
-                { 
-                    "data": "acciones",
-                    "className": "organization-actions text-center",
-                    "orderable": false,
-                    "width": "100px"
-                }
-            ],
-            "data": []
-        });
-
-        // Actualizar contador de resultados
-        dataTable.on('draw', function () {
-            const count = dataTable.rows({ filter: 'applied' }).count();
-            $('#contadorResultados').text(`${count} organización(es) encontrada(s)`);
-        });
-    }
-
-    // Función para cargar organizaciones
+    // Función para cargar organizaciones en DataTable
     function cargarOrganizaciones() {
         toggleLoading(true);
         $('#contadorResultados').text('Cargando organizaciones...');
 
-        $.getJSON("/backend/services/organization/listOrganization.php")
-            .done(function(data){
-                if(data.status === "success"){
-                    // Ordenar por fecha más nueva (si existe)
-                    if (data.organizations && data.organizations[0] && data.organizations[0].lastUpdated) {
-                        data.organizations.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
-                    }
+        // Destruir DataTable existente si existe
+        if (dataTable) {
+            dataTable.destroy();
+        }
 
-                    const tableData = data.organizations.map(o => {
-                        let codigo = o.codigo ? o.codigo : "SIN CÓDIGO";
-                        let nombre = o.nombre || "Nombre no disponible";
-                        let fechaActualizacion = o.lastUpdated ? 
-                            new Date(o.lastUpdated).toLocaleDateString() : "Fecha no disponible";
+        // Inicializar DataTable
+        dataTable = $('#tablaOrg').DataTable({
+            "ajax": {
+                "url": "/backend/services/organization/listOrganization.php",
+                "dataSrc": function (json) {
+                    if (json.status === "success") {
+                        // Ordenar por fecha más nueva
+                        json.organizations.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
                         
-                        return {
-                            codigo: codigo,
-                            nombre: nombre,
-                            fechaActualizacion: fechaActualizacion,
-                            acciones: `
-                                <button class="btn btn-sm btn-outline-primary btnEditar mr-1" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger btnEliminar" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            `,
-                            raw: o.raw,
-                            id: o.id
-                        };
-                    });
-
-                    if (!dataTable) {
-                        inicializarDataTable();
+                        // Procesar datos para DataTable
+                        let data = json.organizations.map(p => {
+                            return {
+                                id: p.id,
+                                identifier: p.identifier ? p.identifier : "SIN IDENTIFICADOR",
+                                name: p.name || "Nombre no disponible",
+                                lastUpdated: new Date(p.lastUpdated).toLocaleDateString(),
+                                raw: p.raw,
+                                dtLastUpdated: new Date(p.lastUpdated)
+                            };
+                        });
+                        
+                        $('#contadorResultados').text(`${data.length} paciente(s) encontrado(s)`);
+                        toastr.success(`Se cargaron ${data.length} organizaciones`);
+                        toggleLoading(false);
+                        
+                        return data;
+                    } else {
+                        $('#contadorResultados').text('Error al cargar organizaciones');
+                        toastr.error("Error al cargar la lista de organizaciones");
+                        toggleLoading(false);
+                        return [];
                     }
-
-                    dataTable.clear();
-                    dataTable.rows.add(tableData);
-                    dataTable.draw();
-
-                    toastr.success(`Se cargaron ${tableData.length} organizaciones`);
-
-                } else {
+                },
+                "error": function (xhr, error, thrown) {
                     $('#contadorResultados').text('Error al cargar organizaciones');
-                    toastr.error("Error al cargar la lista de organizaciones");
+                    toastr.error("Error de conexión: " + error);
+                    toggleLoading(false);
                 }
-            })
-            .fail(function(xhr, status, error){
-                $('#contadorResultados').text('Error al cargar organizaciones');
-                toastr.error("Error de conexión: " + error);
-            })
-            .always(function(){
-                toggleLoading(false);
-            });
-    }
+            },
+            "columns": [
+                { 
+                    "data": "identifier",
+                    "className": "identifier-col"
+                },
+                { "data": "name" },
+                { 
+                    "data": "lastUpdated",
+                    "width": "120px"
+                },
+                {
+                    "data": null,
+                    "className": "actions-col",
+                    "width": "100px",
+                    "render": function (data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-outline-primary btnEditar" title="Editar" data-id="${row.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btnEliminar" title="Eliminar" data-id="${row.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    },
+                    "orderable": false
+                }
+            ],
+            "order": [[2, 'desc']], // Ordenar por fecha descendente
+            "language": {
+                "search": "Buscar:",
+                "lengthMenu": "Mostrar _MENU_ registros",
+                "zeroRecords": "No se encontraron resultados",
+                "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                "infoEmpty": "Mostrando 0 a 0 de 0 registros",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
+            },
+            "responsive": true,
+            "autoWidth": false,
+            "drawCallback": function(settings) {
+                // Actualizar contador después de cada dibujo
+                let api = this.api();
+                let total = api.rows({ search: 'applied' }).count();
+                $('#contadorResultados').text(`${total} paciente(s) encontrado(s)`);
+            }
+        });
 
-    // Inicializar DataTable y cargar organizaciones
-    inicializarDataTable();
-    cargarOrganizaciones();
+        // Evento para seleccionar fila
+        $('#tablaOrg tbody').on('click', 'tr', function () {
+            if ($(this).hasClass('selected')) {
+                $(this).removeClass('selected');
+                editor.setValue("");
+                pacienteActual = null;
+            } else {
+                dataTable.$('tr.selected').removeClass('selected');
+                $(this).addClass('selected');
+                
+                let data = dataTable.row(this).data();
+                if (data) {
+                    pacienteActual = data.id;
+                    let jsonData = data.raw;
+                    jsonOriginal = JSON.stringify(jsonData, null, 2);
+                    
+                    editor.setValue(jsonOriginal);
+                    editor.setOption("readOnly", true);
+                    $("#btnGuardarEdicion").hide();
+                    $("#btnCancelarEdicion").hide();
+                    
+                    toastr.info(`Visualizando paciente: ${data.nombre}`);
+                }
+            }
+        });
 
-    // Ver JSON al hacer clic en la fila
-    $('#tablaOrg tbody').on('click', 'tr', function (e) {
-        if (!$(e.target).closest('.btnEditar, .btnEliminar').length) {
-            const data = dataTable.row(this).data();
+        // Evento para botón editar
+        $('#tablaOrg tbody').on('click', '.btnEditar', function (e) {
+            e.stopPropagation();
+            let id = $(this).data('id');
+            let row = dataTable.row($(this).closest('tr'));
+            let data = row.data();
+            
             if (data) {
-                orgActual = data.id;
+                pacienteActual = data.id;
                 let jsonData = data.raw;
                 jsonOriginal = JSON.stringify(jsonData, null, 2);
                 
                 editor.setValue(jsonOriginal);
-                editor.setOption("readOnly", true);
-                $("#btnGuardarEdicion").hide();
-                $("#btnCancelarEdicion").hide();
+                editor.setOption("readOnly", false);
+                $("#btnGuardarEdicion").show();
+                $("#btnCancelarEdicion").show();
                 
-                // Resaltar fila seleccionada
-                $('#tablaOrg tbody tr').removeClass('selected');
-                $(this).addClass('selected');
+                // Seleccionar la fila
+                dataTable.$('tr.selected').removeClass('selected');
+                $(this).closest('tr').addClass('selected');
                 
-                toastr.info(`Visualizando organización: ${data.nombre}`);
+                toastr.warning(`Modo edición: ${data.nombre}`);
             }
-        }
-    });
+        });
 
-    // Editar organización
-    $('#tablaOrg tbody').on('click', '.btnEditar', function (e) {
-        e.stopPropagation();
-        const tr = $(this).closest('tr');
-        const data = dataTable.row(tr).data();
-        
-        if (data) {
-            orgActual = data.id;
-            let jsonData = data.raw;
-            jsonOriginal = JSON.stringify(jsonData, null, 2);
+        // Evento para botón eliminar
+        $('#tablaOrg tbody').on('click', '.btnEliminar', function (e) {
+            e.stopPropagation();
+            let id = $(this).data('id');
+            let row = dataTable.row($(this).closest('tr'));
+            let data = row.data();
             
-            editor.setValue(jsonOriginal);
-            editor.setOption("readOnly", false);
-            $("#btnGuardarEdicion").show();
-            $("#btnCancelarEdicion").show();
-            
-            // Resaltar fila seleccionada
-            $('#tablaOrg tbody tr').removeClass('selected');
-            tr.addClass('selected');
-            
-            toastr.warning(`Modo edición: ${data.nombre}`);
-        }
-    });
+            if (data) {
+                $('#confirmModalBody').html(`
+                    <p>¿Está seguro que desea eliminar a la organización?</p>
+                    <div class="alert alert-warning">
+                        <strong>${data.identifier}</strong><br>
+                        ${data.name}
+                    </div>
+                    <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
+                `);
+                
+                $('#confirmAction').off('click').on('click', function(){
+                    $('#confirmModal').modal('hide');
+                    
+                    toggleLoading(true);
+                    
+                    $.ajax({
+                        url: "/backend/services/organizaciones/deletePaciente.php?id=" + data.id,
+                        method: "DELETE",
+                        success: function(resp){
+                            toastr.success("Paciente eliminado correctamente");
+                            dataTable.row(row).remove().draw();
+                            editor.setValue("");
+                            pacienteActual = null;
+                        },
+                        error: function(xhr, status, error){
+                            toastr.error("Error al eliminar paciente: " + error);
+                        },
+                        complete: function(){
+                            toggleLoading(false);
+                        }
+                    });
+                });
+                
+                $('#confirmModal').modal('show');
+            }
+        });
+    }
+
+    // Inicializar carga de organizaciones
+    cargarOrganizaciones();
 
     // Cancelar edición
     $("#btnCancelarEdicion").on("click", function(){
@@ -503,8 +511,8 @@ $(document).ready(function(){
 
     // Guardar edición
     $("#btnGuardarEdicion").on("click", function(){
-        if(!orgActual) {
-            toastr.error("No hay organización seleccionada");
+        if(!pacienteActual) {
+            toastr.error("No hay paciente seleccionado");
             return;
         }
 
@@ -513,8 +521,8 @@ $(document).ready(function(){
             updatedJson = JSON.parse(editor.getValue());
             
             // Validación básica del JSON
-            if (!updatedJson.resourceType || updatedJson.resourceType !== "Organization") {
-                toastr.error("El JSON debe ser un recurso FHIR Organization válido");
+            if (!updatedJson.resourceType || updatedJson.resourceType !== "Patient") {
+                toastr.error("El JSON debe ser un recurso FHIR Patient válido");
                 return;
             }
             
@@ -526,21 +534,21 @@ $(document).ready(function(){
         toggleLoading(true);
 
         $.ajax({
-            url: "/backend/services/organization/updateOrganization.php?id=" + orgActual,
+            url: "/backend/services/organizaciones/updatePaciente.php?id=" + pacienteActual,
             method: "PUT",
             data: JSON.stringify(updatedJson),
             contentType: "application/fhir+json",
             success: function(resp){
-                toastr.success("Organización actualizada correctamente");
+                toastr.success("Paciente actualizado correctamente");
                 editor.setOption("readOnly", true);
                 $("#btnGuardarEdicion").hide();
                 $("#btnCancelarEdicion").hide();
                 
-                // Recargar la lista para obtener datos actualizados
-                setTimeout(() => cargarOrganizaciones(), 1000);
+                // Recargar la tabla para obtener datos actualizados
+                dataTable.ajax.reload();
             },
             error: function(xhr, status, error){
-                toastr.error("Error al actualizar organización: " + error);
+                toastr.error("Error al actualizar paciente: " + error);
             },
             complete: function(){
                 toggleLoading(false);
@@ -548,66 +556,20 @@ $(document).ready(function(){
         });
     });
 
-    // Eliminar organización
-    $('#tablaOrg tbody').on('click', '.btnEliminar', function (e) {
-        e.stopPropagation();
-        const tr = $(this).closest('tr');
-        const data = dataTable.row(tr).data();
-        
-        if (!data) return;
-
-        let id = data.id;
-        let nombre = data.nombre;
-        let codigo = data.codigo;
-
-        $('#confirmModalBody').html(`
-            <p>¿Está seguro que desea eliminar la organización?</p>
-            <div class="alert alert-warning">
-                <strong>${codigo}</strong><br>
-                ${nombre}
-            </div>
-            <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
-        `);
-        
-        $('#confirmAction').off('click').on('click', function(){
-            $('#confirmModal').modal('hide');
-            
-            toggleLoading(true);
-            
-            $.ajax({
-                url: "/backend/services/organization/deleteOrganization.php?id=" + id,
-                method: "DELETE",
-                success: function(resp){
-                    toastr.success("Organización eliminada correctamente");
-                    dataTable.row(tr).remove().draw();
-                    editor.setValue("");
-                },
-                error: function(xhr, status, error){
-                    toastr.error("Error al eliminar organización: " + error);
-                },
-                complete: function(){
-                    toggleLoading(false);
-                }
-            });
-        });
-        
-        $('#confirmModal').modal('show');
-    });
-
-    // Filtro búsqueda personalizado (si se desea mantener además del filtro de DataTables)
-    $("#filtroOrg").on("keyup", function(){
+    // Filtro búsqueda personalizado
+    $("#filtro").on("keyup", function(){
         dataTable.search($(this).val()).draw();
     });
 
     // Limpiar filtro
     $("#btnLimpiarFiltro").on("click", function(){
-        $("#filtroOrg").val("");
+        $("#filtro").val("");
         dataTable.search("").draw();
     });
 
     // Recargar lista
     $("#btnRecargar").on("click", function(){
-        cargarOrganizaciones();
+        dataTable.ajax.reload();
     });
 
     // Copiar JSON al portapapeles

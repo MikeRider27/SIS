@@ -2,7 +2,7 @@
 include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 $sql = "SELECT name, alpha_2, alpha_3 FROM public.country;";
 $stmt = $dbconn->prepare($sql);
 $stmt->execute();

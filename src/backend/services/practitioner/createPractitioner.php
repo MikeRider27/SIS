@@ -48,7 +48,7 @@ $id_colegio = $_POST['id_colegio'] ?? null;
 $tipo       = $_POST['tipo'] ?? 'medico';
 
 // Conexión a la base de datos local
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 // Generar código UUID
 $code = Uuid::uuid4()->toString();

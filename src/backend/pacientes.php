@@ -1,7 +1,7 @@
 <?php
 
 include('../core/connection.php');
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 
 // Check if the form was sent and the action is 'search'

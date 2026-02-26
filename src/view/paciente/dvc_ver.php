@@ -3,7 +3,7 @@
 
 <?php
 // Obtener conexión y países (opcional)
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 $sql = "SELECT name, alpha_2, alpha_3 FROM public.country;";
 $stmt = $dbconn->prepare($sql);
 $stmt->execute();

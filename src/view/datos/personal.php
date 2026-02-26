@@ -2,7 +2,7 @@
 include('/var/www/html/core/connection.php');
 
 // Obtener la conexión a la base de datos
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 // Consulta para obtener países
 $sql = "SELECT name FROM public.country;";

@@ -3,7 +3,7 @@ include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
 // Conexión FHIR
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 ?>
 
 <!-- Content Wrapper. Contains page content -->

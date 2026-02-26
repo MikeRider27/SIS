@@ -5,7 +5,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once('/var/www/html/core/connection.php');
-$dbconnFHIR = getConnectionFHIR();
+$dbconnFHIR = getConnection();
 include('generateIPSICVP.php');
 include('sendToFhir.php');
 require_once('/var/www/html/vendor/autoload.php');

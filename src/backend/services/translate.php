@@ -3,7 +3,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once('/var/www/html/core/connection.php');
-$dbconnFHIR = getConnectionFHIR();
+$dbconnFHIR = getConnection();
 
 // === Buscar servidor FHIR activo ===
 $sql = "SELECT endpoint_url 

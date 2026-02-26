@@ -2,7 +2,7 @@
 include('/var/www/html/core/connection.php');
 
 // Obtener la conexión a la base de datos
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 //Buscamos si tenemos el header
 $sql = "SELECT name, alpha_2, alpha_3 FROM public.country;";

@@ -10,7 +10,7 @@ require_once('/var/www/html/vendor/autoload.php');
 use Ramsey\Uuid\Uuid;
 
 // Conexión a la base de datos
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
  if (isset($_POST['accion']) && $_POST['accion'] === "search") {
 

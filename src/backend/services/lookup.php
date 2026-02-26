@@ -1,7 +1,7 @@
 <?php
 
 include('/var/www/html/core/connection.php');
-$dbconnFHIR = getConnectionFHIR();
+$dbconnFHIR = getConnection();
 
 // Consultamos el servidor terminológico disponible
 $sql = "SELECT endpoint_url FROM fhir_server_endpoint WHERE endpoint_version = 'R8' AND endpoint_activo = TRUE;";

@@ -3,7 +3,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 include('../core/connection.php');
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 // Check if user is logged in
 if (isset($_SESSION['idUsuario'])) {

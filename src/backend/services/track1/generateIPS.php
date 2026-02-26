@@ -695,7 +695,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
 // Ejecución principal
 try {
     require_once('/var/www/html/core/connection.php');
-    $dbconnFHIR = getConnectionFHIR();
+    $dbconnFHIR = getConnection();
     
     $JSON = generarFhirBundle(2, 75, $dbconnFHIR);
     

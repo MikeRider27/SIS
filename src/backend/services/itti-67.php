@@ -3,7 +3,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 include('/var/www/html/core/connection.php');
-$dbconnFHIR = getConnectionFHIR();
+$dbconnFHIR = getConnection();
 
 // 1️⃣ Obtener el endpoint activo (puedes dejarlo dinámico o fijarlo al de Gazelle)
 $sql = "SELECT endpoint_url 

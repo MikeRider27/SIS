@@ -3,7 +3,7 @@ include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
 // Obtener la conexión a la base de datos
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 $codigo_usuario = $_SESSION['idUsuario'];
 
 // Consulta para obtener los hospitales
