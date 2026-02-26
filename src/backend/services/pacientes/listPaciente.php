@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
+include('/var/www/html/core/connection.php');
+
 function fetchFHIR($url) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -13,7 +15,7 @@ function fetchFHIR($url) {
 }
 
 // Traer pacientes ordenados por fecha
-$url = "https://fhir-conectaton.mspbs.gov.py/fhir/Patient?_count=50&_sort=-_lastUpdated";
+$url = APP_FHIR_SERVER . "/Patient?_count=50&_sort=-_lastUpdated";
 $result = fetchFHIR($url);
 
 if ($result['status'] !== 200) {
@@ -30,7 +32,7 @@ if (isset($data['entry'])) {
         $pacientes[] = [
             'id' => $r['id'],
             'cedula' => $r['identifier'][0]['value'] ?? '',
-            'nombre' => ($r['name'][0]['given'][0] ?? '') . ' ' . ($r['name'][0]['family'] ?? ''),
+            'nombre' => ($r['name'][0]['given'][0] ?? '') .' '.($r['name'][0]['given'][1] ?? ''). ' ' . ($r['name'][0]['family'] ?? ''),
             'lastUpdated' => $r['meta']['lastUpdated'] ?? '',
             'raw' => $r
         ];

@@ -9,7 +9,7 @@ require_once('/var/www/html/vendor/autoload.php');
 
 use Ramsey\Uuid\Uuid;
 
-function sendFHIRRequest($url, $resource, $method = 'POST') {
+function sendFHIRRequest($url, $resource, $method) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -47,7 +47,7 @@ $sexo     = $_POST['sexo'] ?? null;
 $code = Uuid::uuid4()->toString();
 
 // Conexión a la base de datos local
-$dbconn = getConnectionFHIR();
+$dbconn = getConnection();
 
 // Mapear sexo
 $sexoFHIR = "unknown";
@@ -111,12 +111,11 @@ try {
     // ===============================
     // 3. Guardar en base de datos local PRIMERO
     // ===============================
-    $sql_local = "INSERT INTO paciente2026 (tipo, codetipo, documento, pnombre, snombre, papellido, sapellido, fechanac, sexo, code)
-                  VALUES(:type, :codetipo, :documento, :pnombre, :snombre, :papellido, :sapellido, :fechanac, :sexo, :code)";
+    $sql_local = "INSERT INTO patient (type_code, document , first_name, middle_name, last_name, second_last_name, birth_date, gender, code)
+                  VALUES(:type, :documento, :pnombre, :snombre, :papellido, :sapellido, :fechanac, :sexo, :code)";
 
     $stmt_local = $dbconn->prepare($sql_local);
     $stmt_local->bindValue(':type', "0".$tipo_documento, PDO::PARAM_STR);
-    $stmt_local->bindValue(':codetipo', $display, PDO::PARAM_STR);
     $stmt_local->bindValue(':documento', $cedula, PDO::PARAM_STR);
     $stmt_local->bindValue(':pnombre', mb_strtoupper(trim($pnombre), 'UTF-8'), PDO::PARAM_STR);
     $stmt_local->bindValue(':snombre', mb_strtoupper(trim($snombre), 'UTF-8'), PDO::PARAM_STR);
@@ -136,7 +135,7 @@ try {
     // ===============================
     // 4. Validar en FHIR
     // ===============================
-    $validateUrl = "https://fhir-conectaton.mspbs.gov.py/fhir/Patient/\$validate";
+    $validateUrl = APP_FHIR_SERVER . "/Patient/\$validate";
     $validation = sendFHIRRequest($validateUrl, $patientResource, 'POST');
 
     if ($validation['status'] !== 200) {
@@ -155,7 +154,7 @@ try {
     // ===============================
     // 5. Crear paciente en FHIR
     // ===============================
-    $createUrl = "https://fhir-conectaton.mspbs.gov.py/fhir/Patient/" . urlencode($code);
+    $createUrl = APP_FHIR_SERVER . "/Patient/" . urlencode($code);
     $creation = sendFHIRRequest($createUrl, $patientResource, 'PUT');
 
     $fhir_response = json_decode($creation['body'], true);
