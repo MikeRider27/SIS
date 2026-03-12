@@ -5,7 +5,6 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once('/var/www/html/core/connection.php');
-$dbconnFHIR = getConnection();
 $dbconn = getConnection();
 include('generateIPS.php');
 include('sendToFhir.php');
@@ -41,18 +40,18 @@ if (isset($_SESSION['idUsuario'])) {
         
         try {
             // Iniciar transacción
-            $dbconnFHIR->beginTransaction();
+            $dbconn->beginTransaction();
 
             // Insertar la consulta
             $sql = "INSERT INTO consultation (patient_id, organization_id, practitioner_id, consultation_date)
                         VALUES(:id_paciente, :id_servicio, :id_medico, :fecha_registro)";
-            $stmt = $dbconnFHIR->prepare($sql);
+            $stmt = $dbconn->prepare($sql);
             $stmt->bindParam(':id_paciente', $id_paciente);        
             $stmt->bindParam(':id_servicio', $id_servicio);
             $stmt->bindParam(':id_medico', $id_medico);
             $stmt->bindParam(':fecha_registro', $fecha_actual);
             $stmt->execute();
-            $consultaID = $dbconnFHIR->lastInsertId();
+            $consultaID = $dbconn->lastInsertId();
 
             // Insertar ANTECEDENTE CIE10
             foreach ($codigosCIE as $index => $codigo10) {
@@ -66,7 +65,7 @@ if (isset($_SESSION['idUsuario'])) {
                 
                     $sql6 = "INSERT INTO consultation_diagnostic (patient_id, consultation_id, icd10_code, diagnostic_date, estatus, note, code)
                              VALUES(:id_paciente, :id_consulta, :codigo_cie10:, fecha, :estado, :note, :code)";
-                    $stmt6 = $dbconnFHIR->prepare($sql6);
+                    $stmt6 = $dbconn->prepare($sql6);
                     $stmt6->bindParam(':id_paciente', $id_paciente);
                     $stmt6->bindParam(':id_consulta', $consultaID);
                     $stmt6->bindParam(':codigo_cie10', $codigo10);                 
@@ -86,7 +85,7 @@ if (isset($_SESSION['idUsuario'])) {
                     $alergias = Uuid::uuid4()->toString();
                     $sql7 = "INSERT INTO consultation_allergy (patient_id, consultation_id, allergy_code, code, type)
                              VALUES(:id_paciente, :id_consulta, :codigo_alergia, :code, :type)";
-                    $stmt7 = $dbconnFHIR->prepare($sql7);
+                    $stmt7 = $dbconn->prepare($sql7);
                     $stmt7->bindParam(':id_paciente', $id_paciente);
                     $stmt7->bindParam(':id_consulta', $consultaID);
                     $stmt7->bindParam(':codigo_alergia', $alergia);
@@ -106,7 +105,7 @@ if (isset($_SESSION['idUsuario'])) {
                     $medicamentos = Uuid::uuid4()->toString();
                     $sql9 = "INSERT INTO consultation_medication (patient_id, consultation_id, medication_code, code, dose, via, created_at)
                              VALUES(:id_paciente, :id_consulta, :codigo_medicamento, :code, :dosis, :via, :fecha)";
-                    $stmt9 = $dbconnFHIR->prepare($sql9);
+                    $stmt9 = $dbconn->prepare($sql9);
                     $stmt9->bindParam(':id_paciente', $id_paciente);
                     $stmt9->bindParam(':id_consulta', $consultaID);
                     $stmt9->bindParam(':codigo_medicamento', $medicamento);
@@ -120,7 +119,7 @@ if (isset($_SESSION['idUsuario'])) {
 
             // Enviamos al servidor FHIR
             // Genera el FHIR Bundle EN JSON
-            $jsonOutput = generarFhirBundle($id_paciente, $consultaID, $dbconnFHIR);
+            $jsonOutput = generarFhirBundle($id_paciente, $consultaID, $dbconn);
 
             // Verifica si $jsonOutput es nulo o vacío
             if (empty($jsonOutput)) {
@@ -129,7 +128,7 @@ if (isset($_SESSION['idUsuario'])) {
             }
 
             // Enviar el FHIR Bundle al servidor
-            $fhirResponse = sendToFhirServer($dbconnFHIR, $jsonOutput);
+            $fhirResponse = sendToFhirServer(APP_FHIR_SERVER, $jsonOutput);
             
             // 🔹 CORRECCIÓN PRINCIPAL: Verificar si hay error
             if (is_array($fhirResponse) && isset($fhirResponse['error'])) {
@@ -146,7 +145,7 @@ if (isset($_SESSION['idUsuario'])) {
             }
 
             // Confirmar la transacción
-            $dbconnFHIR->commit();
+            $dbconn->commit();
 
             // 🔹 RESPUESTA FINAL CORRECTA
             echo json_encode([
@@ -158,7 +157,7 @@ if (isset($_SESSION['idUsuario'])) {
             
         } catch (Exception $e) {
             // rollback transaction
-            $dbconnFHIR->rollBack();
+            $dbconn->rollBack();
             echo json_encode([
                 'status' => 'error', 
                 'message' => 'Ocurrió un error: ' . $e->getMessage()

@@ -1,19 +1,9 @@
 <?php
 // Función para enviar el JSON al servidor FHIR
-function sendToFhirServer($dbconnFHIR, $jsonOutput)
+function sendToFhirServer($fhirServerUrl, $jsonOutput)
 {
-    // Consultar el servidor FHIR activo
-    $sql = "SELECT endpoint_url 
-            FROM fhir_server_endpoint 
-            WHERE endpoint_version = 'R4' 
-              AND endpoint_activo = TRUE 
-            LIMIT 1;";
-    $stmt = $dbconnFHIR->prepare($sql);
-    $stmt->execute();
-    $terminology_server = $stmt->fetch(PDO::FETCH_ASSOC);
-
     // Define la URL del servidor FHIR
-    $fhirUrl = rtrim($terminology_server['endpoint_url'], '/') . '/fhir';
+    $fhirUrl = $fhirServerUrl; 
    
     // Configurar la solicitud cURL
     $ch = curl_init($fhirUrl);
