@@ -29,7 +29,7 @@ header('Access-Control-Allow-Headers: Authorization, Content-Type');
 $identifier = isset($_GET['identifier']) ? $_GET['identifier'] : '';
 
 // Construye la URL para DocumentReference
-$url = "https://fhir-conectaton.mspbs.gov.py/fhir/DocumentReference/?patient.identifier=$identifier&_format=json&status=current";
+$url = APP_FHIR_SERVER . "/fhir/DocumentReference/?patient.identifier=$identifier&_format=json&status=current";
 
 // 1. Obtener DocumentReference
 $data = fetchPatientData($url);
@@ -44,7 +44,7 @@ if ($data) {
         $custodianRef = $bundle['entry'][0]['resource']['custodian']['reference']; 
 
         // 3. Hacer GET al Organization
-        $orgUrl = "https://fhir-conectaton.mspbs.gov.py/fhir/$custodianRef";
+        $orgUrl = APP_FHIR_SERVER . "/fhir/$custodianRef";
         $orgData = fetchPatientData($orgUrl);
         if ($orgData) {
             $orgResource = json_decode($orgData, true);

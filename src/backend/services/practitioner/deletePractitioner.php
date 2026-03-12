@@ -7,7 +7,7 @@ if (!$id) {
     exit;
 }
 
-$url = "https://fhir-conectaton.mspbs.gov.py/fhir/Practitioner/" . urlencode($id);
+$url = APP_FHIR_SERVER . "/fhir/Practitioner/" . urlencode($id);
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
