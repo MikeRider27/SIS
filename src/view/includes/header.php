@@ -1,9 +1,9 @@
 <?php session_start();
-//if (!isset($_SESSION['idUsuario'])) {
-//    echo "No autorizado<br>";
-//    echo "<a href='/'>Iniciar sesion</a>";
-//    exit();
-//}
+if (!isset($_SESSION['idUsuario'])) {
+    echo "No autorizado<br>";
+    echo "<a href='/'>Iniciar sesion</a>";
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">

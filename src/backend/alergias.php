@@ -15,7 +15,7 @@ if (isset($_SESSION['idUsuario'])) {
     try { 
 
       // Prepare the SQL statement with UPPER() to ensure all data is in uppercase
-      $sql = 'SELECT UPPER(local_code) AS codigo, UPPER(local_term) AS nombre, type FROM allergies WHERE (UPPER(code) LIKE :term OR UPPER(alergias) LIKE :term)';
+      $sql = 'SELECT UPPER(local_code) AS codigo, UPPER(local_term) AS nombre, type FROM allergies WHERE (UPPER(local_code) LIKE :term OR UPPER(local_term) LIKE :term)';
       $stmt = $dbconn->prepare($sql);
       $stmt->bindParam(':term', $term);
 
@@ -27,8 +27,7 @@ if (isset($_SESSION['idUsuario'])) {
       print json_encode($data);
 
     } catch (Exception $e) {
-      // Rollback transaction in case of error
-      $dbconn->rollBack();
+      // Rollback transaction in case of error     
       print json_encode(array("status" => "error", "message" => "Error: " . $e->getMessage()));
     }
 

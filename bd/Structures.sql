@@ -96,6 +96,71 @@ CREATE TABLE IF NOT EXISTS organization (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS medication (
+    id serial4 PRIMARY KEY,
+    local_code varchar(50) NULL,
+    local_term varchar(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS professional (
+    id serial4 PRIMARY KEY,
+    document VARCHAR(300) NOT NULL,
+    first_name VARCHAR(100),
+    middle_name VARCHAR(100),
+    last_name VARCHAR(100),
+    second_last_name VARCHAR(100),
+    code VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS consultation (
+    id serial4 PRIMARY KEY,
+    patient_id INTEGER NOT NULL,
+    organization_id INTEGER NOT NULL,
+    practitioner_id INTEGER NOT NULL,
+    consultation_date TIMESTAMP NOT NULL,   
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS consultation_diagnostic (
+    id serial4 PRIMARY KEY,
+    patient_id INTEGER NOT NULL,
+    consultation_id INTEGER NOT NULL,
+    icd10_code varchar(5) NOT NULL,
+    diagnostic_date TIMESTAMP NOT NULL,
+    estatus varchar(50) NULL,
+    note text NULL,
+    code varchar(50) NULL,   
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS consultation_allergy (
+    id serial4 PRIMARY KEY,
+    patient_id INTEGER NOT NULL,
+    consultation_id INTEGER NOT NULL,
+    allergy_code varchar(5) NOT NULL,
+    code varchar(50) NULL,
+    type varchar(50) NULL,   
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS consultation_medication (
+    id serial4 PRIMARY KEY,
+    patient_id INTEGER NOT NULL,
+    consultation_id INTEGER NOT NULL,
+    medication_code varchar(5) NOT NULL,
+    code varchar(50) NULL,
+    dose varchar(300) NULL,   
+    via varchar(50) NULL,   
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 

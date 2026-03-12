@@ -55,10 +55,9 @@ try {
     // ===============================
     // 2. VERIFICAR SI YA EXISTE EN BASE DE DATOS LOCAL
     // ===============================
-    $sql_check_local = "SELECT identifier, name FROM organization WHERE identifier = :identifier OR name = :name";
+    $sql_check_local = "SELECT identifier, name FROM organization WHERE identifier = :identifier";
     $stmt_check_local = $dbconn->prepare($sql_check_local);
     $stmt_check_local->bindValue(':identifier', $identifier, PDO::PARAM_STR);
-    $stmt_check_local->bindValue(':name', mb_strtoupper(trim($name), 'UTF-8'), PDO::PARAM_STR);
     $stmt_check_local->execute();
     
     $existing_local = $stmt_check_local->fetch(PDO::FETCH_ASSOC);

@@ -2,15 +2,20 @@
 include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
-// Conexión FHIR
+// Obtener la conexión a la base de datos
 $dbconn = getConnection();
 ?>
 
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
     <section class="content-header">
-        <div class="container-fluid text-center">
-            <h1><strong>Viewer de Profesionales FHIR</strong></h1>
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-12 text-center">
+                    <h1 class="display-5 fw-bold text-primary">Viewer de Profesionales FHIR</h1>
+                    <p class="lead text-muted">Sistema de visualización y gestión de profesionales según estándar FHIR</p>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -19,7 +24,7 @@ $dbconn = getConnection();
             <div class="row">
 
                 <!-- Panel izquierdo - Lista de Profesionales -->
-                <div class="col-lg-6 left-panel">
+                <div class="col-lg-6">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white">
                             <h5 class="card-title mb-0">
@@ -27,17 +32,16 @@ $dbconn = getConnection();
                             </h5>
                         </div>
                         <div class="card-body">
-                            <!-- Filtro de búsqueda -->
                            
                             
                             <!-- Contador de resultados -->
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <small class="text-muted" id="contadorResultados">Cargando profesionales...</small>
+                                <small class="text-muted" id="contadorResultados">Cargando profesionales...</small>                              
                             </div>
 
                             <!-- Tabla de profesionales con DataTables -->
                             <div class="table-container" style="height: calc(100% - 110px); overflow: auto;">
-                                <table id="tablaPractitioner" class="table table-hover" style="width:100%">
+                                <table id="tablaProfesionales" class="table table-hover" style="width:100%">
                                     <thead>
                                         <tr>
                                             <th>Cédula</th>
@@ -56,7 +60,7 @@ $dbconn = getConnection();
                 </div>
 
                 <!-- Panel derecho - Detalle JSON -->
-                <div class="col-lg-6 right-panel">
+                <div class="col-lg-6">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-dark text-white">
                             <h5 class="card-title mb-0">
@@ -157,20 +161,6 @@ include('/var/www/html/view/includes/footer.php');
     --border-radius: 8px;
 }
 
-.content-wrapper {
-    background-color: #f8f9fa;
-    min-height: calc(100vh - 56px);
-}
-
-.content-header {
-    padding: 15px 0;
-}
-
-.left-panel, .right-panel {
-    height: calc(100vh - 150px);
-    overflow-y: auto;
-}
-
 .card {
     border: none;
     border-radius: var(--border-radius);
@@ -181,7 +171,6 @@ include('/var/www/html/view/includes/footer.php');
 .card-header {
     border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
     border-bottom: 1px solid rgba(0,0,0,0.1);
-    padding: 12px 15px;
 }
 
 .table-container {
@@ -189,20 +178,20 @@ include('/var/www/html/view/includes/footer.php');
     border-radius: var(--border-radius);
 }
 
-#tablaPractitioner {
+#tablaPacientes {
     margin-bottom: 0;
 }
 
-#tablaPractitioner tbody tr {
+#tablaPacientes tbody tr {
     cursor: pointer;
     transition: all 0.3s;
 }
 
-#tablaPractitioner tbody tr:hover {
+#tablaPacientes tbody tr:hover {
     background-color: #f8f9fa;
 }
 
-#tablaPractitioner tbody tr.selected {
+#tablaPacientes tbody tr.selected {
     background-color: #e3f2fd;
     border-left: 3px solid var(--primary-color);
 }
@@ -273,10 +262,6 @@ include('/var/www/html/view/includes/footer.php');
         margin-bottom: 20px;
     }
     
-    .left-panel, .right-panel {
-        height: 50vh;
-    }
-    
     .CodeMirror {
         height: calc(100% - 120px);
     }
@@ -302,7 +287,7 @@ $(document).ready(function(){
         lineWrapping: true
     });
 
-    let practitionerActual = null;
+    let pacienteActual = null;
     let jsonOriginal = null;
     let dataTable = null;
 
@@ -316,7 +301,7 @@ $(document).ready(function(){
     }
 
     // Función para cargar profesionales en DataTable
-    function cargarPractitioners() {
+    function cargarProfesionales() {
         toggleLoading(true);
         $('#contadorResultados').text('Cargando profesionales...');
 
@@ -326,7 +311,7 @@ $(document).ready(function(){
         }
 
         // Inicializar DataTable
-        dataTable = $('#tablaPractitioner').DataTable({
+        dataTable = $('#tablaProfesionales').DataTable({
             "ajax": {
                 "url": "/backend/services/practitioner/listPractitioner.php",
                 "dataSrc": function (json) {
@@ -412,23 +397,23 @@ $(document).ready(function(){
                 // Actualizar contador después de cada dibujo
                 let api = this.api();
                 let total = api.rows({ search: 'applied' }).count();
-                $('#contadorResultados').text(`${total} profesional(es) encontrado(s)`);
+                $('#contadorResultados').text(`${total} paciente(s) encontrado(s)`);
             }
         });
 
         // Evento para seleccionar fila
-        $('#tablaPractitioner tbody').on('click', 'tr', function () {
+        $('#tablaProfesionales tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected');
                 editor.setValue("");
-                practitionerActual = null;
+                profesionalActual = null;
             } else {
                 dataTable.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
                 
                 let data = dataTable.row(this).data();
                 if (data) {
-                    practitionerActual = data.id;
+                    profesionalActual = data.id;
                     let jsonData = data.raw;
                     jsonOriginal = JSON.stringify(jsonData, null, 2);
                     
@@ -443,14 +428,14 @@ $(document).ready(function(){
         });
 
         // Evento para botón editar
-        $('#tablaPractitioner tbody').on('click', '.btnEditar', function (e) {
+        $('#tablaProfesionales tbody').on('click', '.btnEditar', function (e) {
             e.stopPropagation();
             let id = $(this).data('id');
             let row = dataTable.row($(this).closest('tr'));
             let data = row.data();
             
             if (data) {
-                practitionerActual = data.id;
+                profesionalActual = data.id;
                 let jsonData = data.raw;
                 jsonOriginal = JSON.stringify(jsonData, null, 2);
                 
@@ -468,7 +453,7 @@ $(document).ready(function(){
         });
 
         // Evento para botón eliminar
-        $('#tablaPractitioner tbody').on('click', '.btnEliminar', function (e) {
+        $('#tablaProfesionales tbody').on('click', '.btnEliminar', function (e) {
             e.stopPropagation();
             let id = $(this).data('id');
             let row = dataTable.row($(this).closest('tr'));
@@ -496,7 +481,7 @@ $(document).ready(function(){
                             toastr.success("Profesional eliminado correctamente");
                             dataTable.row(row).remove().draw();
                             editor.setValue("");
-                            practitionerActual = null;
+                            profesionalActual = null;
                         },
                         error: function(xhr, status, error){
                             toastr.error("Error al eliminar profesional: " + error);
@@ -513,7 +498,7 @@ $(document).ready(function(){
     }
 
     // Inicializar carga de profesionales
-    cargarPractitioners();
+    cargarProfesionales();
 
     // Cancelar edición
     $("#btnCancelarEdicion").on("click", function(){
@@ -526,7 +511,7 @@ $(document).ready(function(){
 
     // Guardar edición
     $("#btnGuardarEdicion").on("click", function(){
-        if(!practitionerActual) {
+        if(!profesionalActual) {
             toastr.error("No hay profesional seleccionado");
             return;
         }
@@ -536,8 +521,8 @@ $(document).ready(function(){
             updatedJson = JSON.parse(editor.getValue());
             
             // Validación básica del JSON
-            if (!updatedJson.resourceType || updatedJson.resourceType !== "Practitioner") {
-                toastr.error("El JSON debe ser un recurso FHIR Practitioner válido");
+            if (!updatedJson.resourceType || updatedJson.resourceType !== "Patient") {
+                toastr.error("El JSON debe ser un recurso FHIR Patient válido");
                 return;
             }
             
@@ -549,7 +534,7 @@ $(document).ready(function(){
         toggleLoading(true);
 
         $.ajax({
-            url: "/backend/services/practitioner/updatePractitioner.php?id=" + practitionerActual,
+            url: "/backend/services/practitioner/updatePractitioner.php?id=" + profesionalActual,
             method: "PUT",
             data: JSON.stringify(updatedJson),
             contentType: "application/fhir+json",
@@ -563,7 +548,7 @@ $(document).ready(function(){
                 dataTable.ajax.reload();
             },
             error: function(xhr, status, error){
-                toastr.error("Error al actualizar profesional: " + error);
+                toastr.error("Error al actualizar profesional   : " + error);
             },
             complete: function(){
                 toggleLoading(false);

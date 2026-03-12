@@ -44,12 +44,12 @@ if (isset($_SESSION['idUsuario'])) {
             $dbconnFHIR->beginTransaction();
 
             // Insertar la consulta
-            $sql = "INSERT INTO consultas (id_paciente, id_medico, id_servicio, fecha_registro)
-                    VALUES(:id_paciente, :id_medico, :id_servicio, :fecha_registro)";
+            $sql = "INSERT INTO consultation (patient_id, organization_id, practitioner_id, consultation_date)
+                        VALUES(:id_paciente, :id_servicio, :id_medico, :fecha_registro)";
             $stmt = $dbconnFHIR->prepare($sql);
-            $stmt->bindParam(':id_paciente', $id_paciente);
-            $stmt->bindParam(':id_medico', $id_medico);
+            $stmt->bindParam(':id_paciente', $id_paciente);        
             $stmt->bindParam(':id_servicio', $id_servicio);
+            $stmt->bindParam(':id_medico', $id_medico);
             $stmt->bindParam(':fecha_registro', $fecha_actual);
             $stmt->execute();
             $consultaID = $dbconnFHIR->lastInsertId();
@@ -64,16 +64,16 @@ if (isset($_SESSION['idUsuario'])) {
                     // Generar un nuevo UUID para cada ANTECEDENTE
                     $antecedente = Uuid::uuid4()->toString();        
                 
-                    $sql6 = "INSERT INTO consulta_diagnosticos (id_paciente, id_consulta, codigo_cie10, code, fecha, estado, note)
-                             VALUES(:id_paciente, :id_consulta, :codigo_cie10, :code, :fecha, :estado, :note)";
+                    $sql6 = "INSERT INTO consultation_diagnostic (patient_id, consultation_id, icd10_code, diagnostic_date, estatus, note, code)
+                             VALUES(:id_paciente, :id_consulta, :codigo_cie10:, fecha, :estado, :note, :code)";
                     $stmt6 = $dbconnFHIR->prepare($sql6);
                     $stmt6->bindParam(':id_paciente', $id_paciente);
                     $stmt6->bindParam(':id_consulta', $consultaID);
-                    $stmt6->bindParam(':codigo_cie10', $codigo10);
-                    $stmt6->bindParam(':code', $antecedente);
+                    $stmt6->bindParam(':codigo_cie10', $codigo10);                 
                     $stmt6->bindParam(':fecha', $fechaCIE_val);
                     $stmt6->bindParam(':estado', $estadoCIE_val);
                     $stmt6->bindParam(':note', $notaCIE_val);
+                    $stmt6->bindParam(':code', $antecedente);
                     $stmt6->execute();
                 }
             }  
@@ -84,7 +84,7 @@ if (isset($_SESSION['idUsuario'])) {
                     $tipoAlergia_val = isset($tipoAlergia[$index]) ? $tipoAlergia[$index] : null;
                     // Generar un nuevo UUID para cada Alergias
                     $alergias = Uuid::uuid4()->toString();
-                    $sql7 = "INSERT INTO consulta_alergias (id_paciente, id_consulta, codigo_alergia, code, type)
+                    $sql7 = "INSERT INTO consultation_allergy (patient_id, consultation_id, allergy_code, code, type)
                              VALUES(:id_paciente, :id_consulta, :codigo_alergia, :code, :type)";
                     $stmt7 = $dbconnFHIR->prepare($sql7);
                     $stmt7->bindParam(':id_paciente', $id_paciente);
@@ -104,7 +104,7 @@ if (isset($_SESSION['idUsuario'])) {
                     $fecha_medicamento_val = isset($fecha_medicamento[$index]) ? $fecha_medicamento[$index] : null;
                     // Generar un nuevo UUID para cada MEDICAMENTOS
                     $medicamentos = Uuid::uuid4()->toString();
-                    $sql9 = "INSERT INTO consultas_recetas (id_paciente, id_consulta, codigo_medicamento, code, dosis, via, fecha)
+                    $sql9 = "INSERT INTO consultation_medication (patient_id, consultation_id, medication_code, code, dose, via, created_at)
                              VALUES(:id_paciente, :id_consulta, :codigo_medicamento, :code, :dosis, :via, :fecha)";
                     $stmt9 = $dbconnFHIR->prepare($sql9);
                     $stmt9->bindParam(':id_paciente', $id_paciente);

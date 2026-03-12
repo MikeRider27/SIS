@@ -14,11 +14,17 @@ if (isset($_SESSION['idUsuario'])) {
 
     try {
       // Prepare the SQL statement
-      // Concatenate codcie10a and codcie10b when codcie10b is not null or empty
-      $sql = "SELECT (codcie10a||'.'||codcie10b) as codigo, nomcie10 as nombre FROM cie10
+      // Concatenate icd10_code_part_a and icd10_code_part_b when icd10_code_part_b is not null or empty
+      $sql = "SELECT 
+                  CASE 
+                      WHEN icd10_code_part_b = 'X' THEN icd10_code_part_a
+                      ELSE icd10_code_part_a || '.' || icd10_code_part_b 
+                  END AS codigo, 
+                  name AS nombre 
+              FROM icd10
               WHERE 
-                  UPPER(codcie10a||'.'||codcie10b) LIKE :term OR 
-                  UPPER(nomcie10) LIKE :term;";
+                  UPPER(icd10_code_part_a || '.' || icd10_code_part_b) LIKE :term OR 
+                  UPPER(name) LIKE :term;";
 
       $stmt = $dbconn->prepare($sql);
       $stmt->bindParam(':term', $term);
@@ -31,7 +37,6 @@ if (isset($_SESSION['idUsuario'])) {
       print json_encode($data);
     } catch (Exception $e) {
       // Handle exception by rolling back transaction and returning error
-      $dbconn->rollBack();
       print json_encode(array("status" => "error", "message" => "Error: " . $e->getMessage()));
     }
   } else {

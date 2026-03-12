@@ -18,7 +18,10 @@ function sendFHIRRequest($url, $resource, $method) {
         'Content-Type: application/fhir+json',
         'Accept: application/fhir+json'
     ]);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($resource));
+    
+    if ($resource !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($resource));
+    }
 
     $response = curl_exec($ch);
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -44,7 +47,15 @@ $papellido = $_POST['papellido'] ?? null;
 $sapellido = $_POST['sapellido'] ?? null;
 $fecha_nacimiento = $_POST['fecha_nacimiento'] ?? null;
 $sexo     = $_POST['sexo'] ?? null;
-$code = Uuid::uuid4()->toString();
+
+// Validar campos obligatorios
+if (!$cedula || !$tipo_documento) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Cédula y tipo de documento son obligatorios'
+    ]);
+    exit;
+}
 
 // Conexión a la base de datos local
 $dbconn = getConnection();
@@ -64,11 +75,60 @@ if($tipo_documento == 1){
     $display = "Pasaporte";
 }
 
-// Generar código UUID
+// ===============================
+// 2. COMPROBAR SI YA EXISTE EN BASE LOCAL
+// ===============================
+$check_local_sql = "SELECT id, code FROM patient WHERE type_code = :type AND document = :documento";
+$check_local_stmt = $dbconn->prepare($check_local_sql);
+$check_local_stmt->bindValue(':type', "0".$tipo_documento, PDO::PARAM_STR);
+$check_local_stmt->bindValue(':documento', $cedula, PDO::PARAM_STR);
+$check_local_stmt->execute();
+$existing_local = $check_local_stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($existing_local) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'El paciente ya existe en la base de datos local',
+        'existing_patient' => [
+            'local_id' => $existing_local['id'],
+            'code' => $existing_local['code']
+        ]
+    ]);
+    exit;
+}
+
+// ===============================
+// 3. COMPROBAR SI YA EXISTE EN FHIR
+// ===============================
+// Buscar por identificador (tipo_documento + cédula)
+$fhir_search_url = APP_FHIR_SERVER . "/Patient?identifier=" . urlencode("0" . $tipo_documento . "|" . $cedula);
+$fhir_search = sendFHIRRequest($fhir_search_url, null, 'GET');
+
+if ($fhir_search['status'] == 200) {
+    $search_response = json_decode($fhir_search['body'], true);
+    
+    // Verificar si encontró algún paciente
+    if (isset($search_response['total']) && $search_response['total'] > 0) {
+        // Obtener el primer paciente encontrado
+        $existing_fhir_patient = $search_response['entry'][0]['resource'];
+        
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'El paciente ya existe en el servidor FHIR',
+            'existing_patient' => [
+                'fhir_id' => $existing_fhir_patient['id'],
+                'full_url' => APP_FHIR_SERVER . "/Patient/" . $existing_fhir_patient['id']
+            ]
+        ]);
+        exit;
+    }
+}
+
+// Generar código UUID solo si no existe
 $code = Uuid::uuid4()->toString();
 
 // ===============================
-// 2. Construir recurso Patient para FHIR
+// 4. Construir recurso Patient para FHIR
 // ===============================
 $patientResource = [
     "resourceType" => "Patient",
@@ -82,7 +142,7 @@ $patientResource = [
                     <p class=\"res-header-id\"><b>Generated Narrative: Patient</b></p>
                     <div style=\"background-color: #e6e6ff; padding: 10px; border: 1px solid #661aff;\">
                         {$pnombre} {$papellido} " . ucfirst($sexoFHIR) . 
-                        ", DoB: {$fecha_nacimiento} ( Cédula de Identidad: {$cedula} )
+                        ", DoB: {$fecha_nacimiento} ( {$display}: {$cedula} )
                     </div>
                  </div>"
     ],
@@ -109,7 +169,7 @@ try {
     $dbconn->beginTransaction();
 
     // ===============================
-    // 3. Guardar en base de datos local PRIMERO
+    // 5. Guardar en base de datos local PRIMERO
     // ===============================
     $sql_local = "INSERT INTO patient (type_code, document , first_name, middle_name, last_name, second_last_name, birth_date, gender, code)
                   VALUES(:type, :documento, :pnombre, :snombre, :papellido, :sapellido, :fechanac, :sexo, :code)";
@@ -133,7 +193,7 @@ try {
     }
 
     // ===============================
-    // 4. Validar en FHIR
+    // 6. Validar en FHIR
     // ===============================
     $validateUrl = APP_FHIR_SERVER . "/Patient/\$validate";
     $validation = sendFHIRRequest($validateUrl, $patientResource, 'POST');
@@ -152,14 +212,14 @@ try {
     }
 
     // ===============================
-    // 5. Crear paciente en FHIR
+    // 7. Crear paciente en FHIR
     // ===============================
     $createUrl = APP_FHIR_SERVER . "/Patient/" . urlencode($code);
     $creation = sendFHIRRequest($createUrl, $patientResource, 'PUT');
 
     $fhir_response = json_decode($creation['body'], true);
     
-    if ($creation['status'] == 201) {
+    if ($creation['status'] == 200 || $creation['status'] == 201) {
         // Confirmar ambas operaciones
         $dbconn->commit();
         
@@ -167,6 +227,7 @@ try {
             'status' => 'success',
             'message' => 'Paciente creado correctamente en ambas bases de datos',
             'local_id' => $local_id,
+            'fhir_id' => $code,
             'fhir_response' => $fhir_response
         ]);
     } else {

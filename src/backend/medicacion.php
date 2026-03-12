@@ -17,7 +17,7 @@ if (isset($_SESSION['idUsuario'])) {
     try {
       // Prepare the SQL statement
       // Concatenate codcie10a and codcie10b when codcie10b is not null or empty
-      $sql = "SELECT UPPER(local_code) AS codigo, UPPER(local_term) AS nombre FROM medicacion 
+      $sql = "SELECT UPPER(local_code) AS codigo, UPPER(local_term) AS nombre FROM medication 
       WHERE UPPER(local_code) LIKE :term OR UPPER(local_term) LIKE :term;";
 
       $stmt = $dbconn->prepare($sql);

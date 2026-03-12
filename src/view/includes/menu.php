@@ -19,7 +19,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/consultas/create/paciente" class="nav-link">
+                    <a href="/consultas/create" class="nav-link">
                         <i class="far fa-circle nav-icon"></i>
                         <p>ITI-65 MHD IPS-LAC</p>
                     </a>
@@ -427,7 +427,7 @@
     </li>
 
     <li class="nav-item">
-        <a href="/consultas/create/paciente" class="nav-link">
+        <a href="/consultas/create" class="nav-link">
             <i class="nav-icon fas fa-list text-secondary"></i>
             <p>
                 MHD RDA- ITI-65                 

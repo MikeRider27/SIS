@@ -14,9 +14,9 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
 {
     try {
         // Consulta SQL para obtener los datos del paciente
-        $sql = "SELECT id, tipo, codetipo, documento, pnombre, snombre, papellido, sapellido, fechanac, sexo, code 
-              FROM paciente2026
-              WHERE id = :id_paciente;";
+        $sql = "SELECT p.id, p.type_code, dt.name ,p.document, p.first_name, p.middle_name, p.last_name, p.second_last_name, p.birth_date, p.gender, p.code
+                FROM patient p INNER JOIN document_type dt ON p.type_code = dt.id 
+                WHERE p.id = :id_paciente";
         $stmt = $dbconnFHIR->prepare($sql);
         $stmt->bindParam(':id_paciente', $id_paciente, PDO::PARAM_INT);
         $stmt->execute();
@@ -29,29 +29,29 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         // Construir lista de given (nombres)
         $given = [];
 
-        if (!empty($paciente['pnombre'])) {
-            $given[] = $paciente['pnombre'];
+        if (!empty($paciente['first_name'])) {
+            $given[] = $paciente['first_name'];
         }
 
-        if (!empty($paciente['snombre'])) {
-            $given[] = $paciente['snombre'];
+        if (!empty($paciente['middle_name'])) {
+            $given[] = $paciente['middle_name'];
         }
 
         // Construir el apellido (family) solo con los que existan
         $familyParts = [];
 
-        if (!empty($paciente['papellido'])) {
-            $familyParts[] = $paciente['papellido'];
+        if (!empty($paciente['last_name'])) {
+            $familyParts[] = $paciente['last_name'];
         }
 
-        if (!empty($paciente['sapellido'])) {
-            $familyParts[] = $paciente['sapellido'];
+        if (!empty($paciente['second_last_name'])) {
+            $familyParts[] = $paciente['second_last_name'];
         }
 
         // TRAEMOS LA CONSULTA
-        $sql2 = "SELECT id, id_paciente, id_medico, id_servicio, fecha_registro
-               FROM consultas
-               WHERE id = :id_consulta;";
+        $sql2 = "SELECT id, patient_id, organization_id, practitioner_id, consultation_date
+                 FROM consultation
+                 WHERE id = :id_consulta;";
         $stmt2 = $dbconnFHIR->prepare($sql2);
         $stmt2->bindParam(':id_consulta', $id_consulta, PDO::PARAM_INT);
         $stmt2->execute();
@@ -62,52 +62,51 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         }
 
         // TRAEMOS DATOS DEL MEDICO
-        $sql3 = "SELECT id, documento, fechanac, sexo, pais, id_colegio, fecha, tipo, code, pnombre, snombre, papellido, sapellido
-                FROM profesional2025
-                WHERE id = :id_profesional";
+        $sql3 = "SELECT id, document, first_name, middle_name, last_name, second_last_name, code
+                 FROM professional
+                 WHERE id = :id_profesional";
         $stmt3 = $dbconnFHIR->prepare($sql3);
-        $stmt3->bindParam(':id_profesional', $consultas['id_medico']);
+        $stmt3->bindParam(':id_profesional', $consultas['practitioner_id']);
         $stmt3->execute();
         $medico = $stmt3->fetch(PDO::FETCH_ASSOC);
 
          // Construir lista de given (nombres)
         $givenMedico = [];
 
-        if (!empty($medico['pnombre'])) {
-            $givenMedico[] = $medico['pnombre'];
+        if (!empty($medico['first_name'])) {
+            $givenMedico[] = $medico['first_name'];
         }
 
-        if (!empty($medico['snombre'])) {
-            $givenMedico[] = $medico['snombre'];
+        if (!empty($medico['middle_name'])) {
+            $givenMedico[] = $medico['middle_name'];
         }
 
         // Construir el apellido (family) solo con los que existan
         $familyPartsMedico = [];
 
-        if (!empty($medico['papellido'])) {
-            $familyPartsMedico[] = $medico['papellido'];
+        if (!empty($medico['last_name'])) {
+            $familyPartsMedico[] = $medico['last_name'];
         }
 
-        if (!empty($medico['sapellido'])) {
-            $familyPartsMedico[] = $medico['sapellido'];
+        if (!empty($medico['second_last_name'])) {
+            $familyPartsMedico[] = $medico['second_last_name'];
         }
 
 
-        // Establecimiento
-        $sql4 = "SELECT p.id, p.id_establecimiento, p.nombre, p.direccion, p.departamento, p.pais, p.code, c.alpha_2, c.alpha_3, p.type
-               FROM establecimiento2025 p 
-               INNER JOIN country c on p.pais = c.alpha_3 
-               WHERE p.id = :id_servicio";
+        // Organización
+        $sql4 = "SELECT id, identifier, name, type, identifier AS code
+                 FROM organization 
+                 WHERE p.id = :id_servicio";
         $stmt4 = $dbconnFHIR->prepare($sql4);
-        $stmt4->bindParam(':id_servicio', $consultas['id_servicio']);
+        $stmt4->bindParam(':id_servicio', $consultas['organization_id']);
         $stmt4->execute();
         $establecimiento = $stmt4->fetch(PDO::FETCH_ASSOC);
 
 
         // traemos los diagnosticos - CORREGIDA (había error en GROUP BY)
-        $sql6 = "SELECT id, id_consulta, codigo_cie10, code, fecha, estado, note    
-                 FROM consulta_diagnosticos
-                 WHERE id_paciente = :id_paciente AND id_consulta = :id_consulta";
+        $sql6 = "SELECT id, patient_id, consultation_id, icd10_code, diagnostic_date, estatus, note, code
+                 FROM consultation_diagnostic
+                 WHERE patient_id = :id_paciente AND consultation_id = :id_consulta";
         $stmt6 = $dbconnFHIR->prepare($sql6);
         $stmt6->bindParam(':id_paciente', $id_paciente, PDO::PARAM_INT);
         $stmt6->bindParam(':id_consulta', $consultas['id'], PDO::PARAM_INT);
@@ -115,11 +114,10 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         $diagnosticos = $stmt6->fetchAll(PDO::FETCH_ASSOC);
      
         // traemos los medicamentos
-        $sql8 = "SELECT c.codigo_medicamento, c.code, m.forma, c.dosis, m.descripcion, c.fecha, c.via
-               FROM consultas_recetas c 
-               INNER JOIN medicacion m ON c.codigo_medicamento = m.local_code 
-               WHERE c.id_paciente = :id_paciente AND c.id_consulta = :id_consulta  
-               GROUP BY c.codigo_medicamento, c.code, m.forma, c.dosis, c.via, m.descripcion, c.fecha";
+        $sql8 = "SELECT c.id, c.patient_id, c.consultation_id, c.medication_code, c.code, c.dose, c.via, c.created_at, m.local_term 
+                 FROM consultation_medication c INNER JOIN medication m ON c.medication_code = m.local_code
+                 WHERE c.patient_id = :id_paciente AND c.consultation_id = :id_consulta  
+                 GROUP BY c.medication_code, c.code, m.local_term, c.dose, c.via, m.description, c.created_at";
         $stmt8 = $dbconnFHIR->prepare($sql8);
         $stmt8->bindParam(':id_paciente', $id_paciente, PDO::PARAM_INT);
         $stmt8->bindParam(':id_consulta', $consultas['id'], PDO::PARAM_INT);
@@ -127,10 +125,9 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         $medicamentos = $stmt8->fetchAll(PDO::FETCH_ASSOC);
       
         // traemos las alergias
-        $sql9 = "SELECT c.codigo_alergia, c.code, c.type, a.alergias, a.category
-                 FROM consulta_alergias c
-                 INNER JOIN alergias a ON c.codigo_alergia = a.code 
-               WHERE c.id_paciente = :id_paciente AND c.id_consulta = :id_consulta";
+        $sql9 = "SELECT c.id, c.patient_id, c.consultation_id, c.allergy_code, c.code, c.type, a.local_term 
+                 FROM consultation_allergy c inner join allergies a on c.allergy_code = a.local_code  
+                 WHERE c.patient_id = :id_paciente AND c.consultation_id = :id_consulta";
         $stmt9 = $dbconnFHIR->prepare($sql9);
         $stmt9->bindParam(':id_paciente', $id_paciente, PDO::PARAM_INT);
         $stmt9->bindParam(':id_consulta', $consultas['id'], PDO::PARAM_INT);
@@ -360,12 +357,12 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                             "coding" => [
                                 [
                                     "system" => "https://mspbs.gov.py/fhir/CodeSystem/IdentificadoresPersonaCS",
-                                    "code" => $paciente['tipo'],
-                                    "display" => $paciente['codetipo']
+                                    "code" => $paciente['type_code'],
+                                    "display" => $paciente['name']
                                 ]
                             ]
                         ],
-                        "value" => $paciente['documento']
+                        "value" => $paciente['document']
                     ]
                 ],
                 "name" => [
@@ -374,17 +371,27 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "given" => $given
                     ]
                 ],
-                "gender" => $paciente['sexo'],
-                "birthDate" => $paciente['fechanac']
+                "gender" => $paciente['gender'],
+                "birthDate" => $paciente['birth_date']
             ]
         ];
 
         // Agregamos los diagnósticos al Bundle FHIR
         foreach ($diagnosticos as $diagnostico) {
             //hacemos una consulta para obtener más detalles del diagnóstico
-            $sql = "SELECT codcie10a, codcie10b, nomcie10 FROM cie10 WHERE codcie10a || '.' || codcie10b = :codigo";
+            $sql = "SELECT 
+                  CASE 
+                      WHEN icd10_code_part_b = 'X' THEN icd10_code_part_a
+                      ELSE icd10_code_part_a || '.' || icd10_code_part_b 
+                  END AS codigo, 
+                  name 
+              FROM icd10 
+              WHERE CASE 
+                      WHEN icd10_code_part_b = 'X' THEN icd10_code_part_a
+                      ELSE icd10_code_part_a || '.' || icd10_code_part_b 
+                  END = :codigo";
             $stmt = $dbconnFHIR->prepare($sql);
-            $stmt->bindParam(':codigo', $diagnostico['codigo_cie10']);
+            $stmt->bindParam(':codigo', $diagnostico['icd10_code']);
             $stmt->execute();
             $cie10 = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -406,7 +413,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "coding" => [
                             [
                                 "system" => "http://terminology.hl7.org/CodeSystem/condition-ver-status",
-                                "code" => $diagnostico['estado']
+                                "code" => $diagnostico['status']
                             ]
                         ]
                     ],
@@ -414,17 +421,17 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "coding" => [
                             [
                                 "system" => "http://hl7.org/fhir/sid/icd-10",
-                                "code" => $diagnostico['codigo_cie10'],
-                                "display" => $cie10['nomcie10']
+                                "code" => $diagnostico['icd10_code'],
+                                "display" => $cie10['name']
                             ]
                         ],
-                        "text" => $cie10['nomcie10']
+                        "text" => $cie10['name']
                     ],
                     "subject" => [
                         "reference" => "urn:uuid:".$PacienteID
                     ],
                     "onsetPeriod" => [
-                        "start" => $diagnostico['fecha']
+                        "start" => $diagnostico['diagnostic_date']
                     ],
                     "note" => [
                         [
@@ -468,17 +475,17 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         ]
                     ],
                     "category" => [
-                        $alergia['category']
+                        $alergia['type']
                     ],
                     "code" => [
                         "coding" => [
                             [
                                 "system" => "http://hl7.org/fhir/sid/icd-10",
-                                "code" => $alergia['codigo_alergia'],
-                                "display" => $alergia['alergias']
+                                "code" => $alergia['allergy_code'],
+                                "display" => $alergia['local_term']
                             ]
                         ],
-                        "text" => $alergia['alergias']
+                        "text" => $alergia['local_term']
                     ],
                     "patient" => [
                         "reference" => "urn:uuid:".$PacienteID
@@ -504,15 +511,15 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                     ],
                     "status" => "active",
                     "medicationCodeableConcept" => [
-                        "text" => $medicamento['descripcion']
+                        "text" => $medicamento['local_term']
                     ],
                     "subject" => [
                         "reference" => "urn:uuid:".$PacienteID
                     ],
-                    "effectiveDateTime" => $medicamento['fecha'] ?? date('c'),
+                    "effectiveDateTime" => $medicamento['created_at'] ?? date('c'),
                     "dosage" => [
                         [
-                            "text" => $medicamento['dosis'],
+                            "text" => $medicamento['dose'],
                             "route" => [
                                 "text" => $medicamento['via']
                             ]
@@ -549,7 +556,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                                 ]
                             ]
                         ],
-                        "value" => trim($medico['documento'])
+                        "value" => trim($medico['document'])
                     ]
                 ],
                 "name" => [
@@ -577,7 +584,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                 ],
                 "identifier" => [
                     [
-                        "value" => $establecimiento['id_establecimiento']
+                        "value" => $establecimiento['identifier']
                     ]
                 ],
                 "type" => [
@@ -585,7 +592,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "text" => $establecimiento['type']
                     ]
                 ],
-                "name" => $establecimiento['nombre']
+                "name" => $establecimiento['name']
             ]
         ];
 
@@ -637,12 +644,12 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                             "coding" => [
                                 [
                                     "system" => "https://mspbs.gov.py/fhir/CodeSystem/IdentificadoresPersonaCS",
-                                    "code" => $paciente['tipo'],
-                                    "display" => $paciente['codetipo']
+                                    "code" => $paciente['type_code'],
+                                    "display" => $paciente['name']
                                 ]
                             ]
                         ],
-                        "value" => $paciente['documento']
+                        "value" => $paciente['document']
                     ]
                 ],
                 "name" => [

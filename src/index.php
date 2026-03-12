@@ -10,7 +10,7 @@ function routeHandler($method, $route)
             '/salir' => '/view/login/salir.php',
             '/paciente/view' => '/view/rda/viewer3.php',
             '/paciente/ips' => '/view/rda/ips.php',
-             '/consultas/create/paciente' => '/view/track1/create_paciente.php',
+            '/consultas/create' => '/view/track1/create_paciente.php',
             
             
             

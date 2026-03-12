@@ -7,7 +7,7 @@ $dbconn = getConnection();
 $codigo_usuario = $_SESSION['idUsuario'];
 
 // Consulta para obtener los hospitales
-$sql = "SELECT id_establecimiento, nombre FROM establecimiento2025;";
+$sql = "SELECT identifier, name FROM organization;";
 $stmt = $dbconn->prepare($sql);
 $stmt->execute();
 $hospitals = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -127,7 +127,7 @@ $hospitals = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <option value="" selected disabled>Seleccione un centro</option>
             <?php
             foreach ($hospitals as $hospital) {
-              echo '<option value="' . $hospital['id_establecimiento'] . '">' . $hospital['nombre'] . '</option>';
+              echo '<option value="' . $hospital['identifier'] . '">' . $hospital['name'] . '</option>';
             }
             ?>
           </select>

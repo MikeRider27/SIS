@@ -82,12 +82,12 @@ $department = mb_strtoupper(trim($_POST['ciudad'] ?? 'ASUNCIÓN'), 'UTF-8');
 
     try {
     // Buscar al profesional en la base de datos
-    $sql = "SELECT id, id_establecimiento, nombre, direccion, departamento, pais, code, type
-            FROM establecimiento2025
-            WHERE id_establecimiento = :id_establecimiento AND type IS NOT NULL
+    $sql = "SELECT id, identifier, name, type
+            FROM public.organization
+            WHERE identifier = :identifier AND type IS NOT NULL
             LIMIT 1;";
     $stmt = $dbconn->prepare($sql);
-    $stmt->bindValue(':id_establecimiento', $identifier, PDO::PARAM_STR);
+    $stmt->bindValue(':identifier', $identifier, PDO::PARAM_STR);
     $stmt->execute();
 
     $data = $stmt->fetch(PDO::FETCH_ASSOC);

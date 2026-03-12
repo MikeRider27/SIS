@@ -2,20 +2,15 @@
 include('/var/www/html/view/includes/header.php');
 include('/var/www/html/core/connection.php');
 
-// Obtener la conexión a la base de datos
+// Conexión FHIR
 $dbconn = getConnection();
 ?>
 
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
     <section class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-12 text-center">
-                    <h1 class="display-5 fw-bold text-primary">Viewer de Organizaciones FHIR</h1>
-                    <p class="lead text-muted">Sistema de visualización y gestión de organizaciones según estándar FHIR</p>
-                </div>
-            </div>
+        <div class="container-fluid text-center">
+            <h1><strong>Viewer de Profesionales FHIR</strong></h1>
         </div>
     </section>
 
@@ -23,28 +18,29 @@ $dbconn = getConnection();
         <div class="container-fluid">
             <div class="row">
 
-                <!-- Panel izquierdo - Lista de organizaciones -->
-                <div class="col-lg-6">
+                <!-- Panel izquierdo - Lista de Profesionales -->
+                <div class="col-lg-6 left-panel">
                     <div class="card shadow-sm">
                         <div class="card-header bg-primary text-white">
                             <h5 class="card-title mb-0">
-                                <i class="fas fa-building me-2"></i><strong>Lista de Organizaciones</strong>
+                                <i class="fas fa-list me-2"></i><strong>Lista de Profesionales</strong>
                             </h5>
                         </div>
                         <div class="card-body">
+                            <!-- Filtro de búsqueda -->
                            
                             
                             <!-- Contador de resultados -->
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <small class="text-muted" id="contadorResultados">Cargando organizaciones...</small>                              
+                                <small class="text-muted" id="contadorResultados">Cargando profesionales...</small>
                             </div>
 
-                            <!-- Tabla de organizaciones con DataTables -->
+                            <!-- Tabla de profesionales con DataTables -->
                             <div class="table-container" style="height: calc(100% - 110px); overflow: auto;">
-                                <table id="tablaOrg" class="table table-hover" style="width:100%">
+                                <table id="tablaPractitioner" class="table table-hover" style="width:100%">
                                     <thead>
                                         <tr>
-                                            <th>Código</th>
+                                            <th>Cédula</th>
                                             <th>Nombre</th>
                                             <th>Actualizado</th>
                                             <th>Acciones</th>
@@ -60,7 +56,7 @@ $dbconn = getConnection();
                 </div>
 
                 <!-- Panel derecho - Detalle JSON -->
-                <div class="col-lg-6">
+                <div class="col-lg-6 right-panel">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-dark text-white">
                             <h5 class="card-title mb-0">
@@ -70,7 +66,7 @@ $dbconn = getConnection();
                         <div class="card-body d-flex flex-column">
                             <div class="alert alert-info d-flex align-items-center mb-3">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <small>Seleccione un organization para visualizar su recurso FHIR completo</small>
+                                <small>Seleccione un profesional para visualizar su recurso FHIR completo</small>
                             </div>
                             
                             <div class="json-container flex-grow-1">
@@ -161,6 +157,20 @@ include('/var/www/html/view/includes/footer.php');
     --border-radius: 8px;
 }
 
+.content-wrapper {
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 56px);
+}
+
+.content-header {
+    padding: 15px 0;
+}
+
+.left-panel, .right-panel {
+    height: calc(100vh - 150px);
+    overflow-y: auto;
+}
+
 .card {
     border: none;
     border-radius: var(--border-radius);
@@ -171,6 +181,7 @@ include('/var/www/html/view/includes/footer.php');
 .card-header {
     border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
     border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding: 12px 15px;
 }
 
 .table-container {
@@ -178,20 +189,20 @@ include('/var/www/html/view/includes/footer.php');
     border-radius: var(--border-radius);
 }
 
-#tablaOrg {
+#tablaPractitioner {
     margin-bottom: 0;
 }
 
-#tablaOrg tbody tr {
+#tablaPractitioner tbody tr {
     cursor: pointer;
     transition: all 0.3s;
 }
 
-#tablaOrg tbody tr:hover {
+#tablaPractitioner tbody tr:hover {
     background-color: #f8f9fa;
 }
 
-#tablaOrg tbody tr.selected {
+#tablaPractitioner tbody tr.selected {
     background-color: #e3f2fd;
     border-left: 3px solid var(--primary-color);
 }
@@ -262,6 +273,10 @@ include('/var/www/html/view/includes/footer.php');
         margin-bottom: 20px;
     }
     
+    .left-panel, .right-panel {
+        height: 50vh;
+    }
+    
     .CodeMirror {
         height: calc(100% - 120px);
     }
@@ -287,7 +302,7 @@ $(document).ready(function(){
         lineWrapping: true
     });
 
-    let organizationActual = null;
+    let practitionerActual = null;
     let jsonOriginal = null;
     let dataTable = null;
 
@@ -300,10 +315,10 @@ $(document).ready(function(){
         }
     }
 
-    // Función para cargar organizaciones en DataTable
-    function cargarOrganizaciones() {
+    // Función para cargar profesionales en DataTable
+    function cargarPractitioners() {
         toggleLoading(true);
-        $('#contadorResultados').text('Cargando organizaciones...');
+        $('#contadorResultados').text('Cargando profesionales...');
 
         // Destruir DataTable existente si existe
         if (dataTable) {
@@ -311,50 +326,50 @@ $(document).ready(function(){
         }
 
         // Inicializar DataTable
-        dataTable = $('#tablaOrg').DataTable({
+        dataTable = $('#tablaPractitioner').DataTable({
             "ajax": {
-                "url": "/backend/services/organization/listOrganization.php",
+                "url": "/backend/services/practitioner/listPractitioner.php",
                 "dataSrc": function (json) {
                     if (json.status === "success") {
                         // Ordenar por fecha más nueva
-                        json.organizations.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
+                        json.practitioner.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
                         
                         // Procesar datos para DataTable
-                        let data = json.organizations.map(p => {
+                        let data = json.practitioner.map(p => {
                             return {
                                 id: p.id,
-                                identifier: p.identifier ? p.identifier : "SIN IDENTIFICADOR",
-                                name: p.name || "Nombre no disponible",
+                                cedula: p.cedula ? p.cedula : "SIN CÉDULA",
+                                nombre: p.nombre || "Nombre no disponible",
                                 lastUpdated: new Date(p.lastUpdated).toLocaleDateString(),
                                 raw: p.raw,
                                 dtLastUpdated: new Date(p.lastUpdated)
                             };
                         });
                         
-                        $('#contadorResultados').text(`${data.length} organization(s) encontrado(s)`);
-                        toastr.success(`Se cargaron ${data.length} organizaciones`);
+                        $('#contadorResultados').text(`${data.length} profesional(es) encontrado(s)`);
+                        toastr.success(`Se cargaron ${data.length} profesionales`);
                         toggleLoading(false);
                         
                         return data;
                     } else {
-                        $('#contadorResultados').text('Error al cargar organizaciones');
-                        toastr.error("Error al cargar la lista de organizaciones");
+                        $('#contadorResultados').text('Error al cargar profesionales');
+                        toastr.error("Error al cargar la lista de profesionales");
                         toggleLoading(false);
                         return [];
                     }
                 },
                 "error": function (xhr, error, thrown) {
-                    $('#contadorResultados').text('Error al cargar organizaciones');
+                    $('#contadorResultados').text('Error al cargar profesionales');
                     toastr.error("Error de conexión: " + error);
                     toggleLoading(false);
                 }
             },
             "columns": [
                 { 
-                    "data": "identifier",
-                    "className": "identifier-col"
+                    "data": "cedula",
+                    "className": "cedula-col"
                 },
-                { "data": "name" },
+                { "data": "nombre" },
                 { 
                     "data": "lastUpdated",
                     "width": "120px"
@@ -397,23 +412,23 @@ $(document).ready(function(){
                 // Actualizar contador después de cada dibujo
                 let api = this.api();
                 let total = api.rows({ search: 'applied' }).count();
-                $('#contadorResultados').text(`${total} organization(s) encontrado(s)`);
+                $('#contadorResultados').text(`${total} profesional(es) encontrado(s)`);
             }
         });
 
         // Evento para seleccionar fila
-        $('#tablaOrg tbody').on('click', 'tr', function () {
+        $('#tablaPractitioner tbody').on('click', 'tr', function () {
             if ($(this).hasClass('selected')) {
                 $(this).removeClass('selected');
                 editor.setValue("");
-                organizationActual = null;
+                practitionerActual = null;
             } else {
                 dataTable.$('tr.selected').removeClass('selected');
                 $(this).addClass('selected');
                 
                 let data = dataTable.row(this).data();
                 if (data) {
-                    organizationActual = data.id;
+                    practitionerActual = data.id;
                     let jsonData = data.raw;
                     jsonOriginal = JSON.stringify(jsonData, null, 2);
                     
@@ -422,20 +437,20 @@ $(document).ready(function(){
                     $("#btnGuardarEdicion").hide();
                     $("#btnCancelarEdicion").hide();
                     
-                    toastr.info(`Visualizando organization: ${data.name}`);
+                    toastr.info(`Visualizando profesional: ${data.nombre}`);
                 }
             }
         });
 
         // Evento para botón editar
-        $('#tablaOrg tbody').on('click', '.btnEditar', function (e) {
+        $('#tablaPractitioner tbody').on('click', '.btnEditar', function (e) {
             e.stopPropagation();
             let id = $(this).data('id');
             let row = dataTable.row($(this).closest('tr'));
             let data = row.data();
             
             if (data) {
-                organizationActual = data.id;
+                practitionerActual = data.id;
                 let jsonData = data.raw;
                 jsonOriginal = JSON.stringify(jsonData, null, 2);
                 
@@ -448,12 +463,12 @@ $(document).ready(function(){
                 dataTable.$('tr.selected').removeClass('selected');
                 $(this).closest('tr').addClass('selected');
                 
-                toastr.warning(`Modo edición: ${data.name}`);
+                toastr.warning(`Modo edición: ${data.nombre}`);
             }
         });
 
         // Evento para botón eliminar
-        $('#tablaOrg tbody').on('click', '.btnEliminar', function (e) {
+        $('#tablaPractitioner tbody').on('click', '.btnEliminar', function (e) {
             e.stopPropagation();
             let id = $(this).data('id');
             let row = dataTable.row($(this).closest('tr'));
@@ -461,10 +476,10 @@ $(document).ready(function(){
             
             if (data) {
                 $('#confirmModalBody').html(`
-                    <p>¿Está seguro que desea eliminar a la organización?</p>
+                    <p>¿Está seguro que desea eliminar al profesional?</p>
                     <div class="alert alert-warning">
-                        <strong>${data.identifier}</strong><br>
-                        ${data.name}
+                        <strong>${data.cedula}</strong><br>
+                        ${data.nombre}
                     </div>
                     <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
                 `);
@@ -475,16 +490,16 @@ $(document).ready(function(){
                     toggleLoading(true);
                     
                     $.ajax({
-                        url: "/backend/services/organization/deleteOrganization.php?id=" + data.id,
+                        url: "/backend/services/practitioner/deletePractitioner.php?id=" + data.id,
                         method: "DELETE",
                         success: function(resp){
-                            toastr.success("Organización eliminada correctamente");
+                            toastr.success("Profesional eliminado correctamente");
                             dataTable.row(row).remove().draw();
                             editor.setValue("");
-                            organizationActual = null;
+                            practitionerActual = null;
                         },
                         error: function(xhr, status, error){
-                            toastr.error("Error al eliminar organización: " + error);
+                            toastr.error("Error al eliminar profesional: " + error);
                         },
                         complete: function(){
                             toggleLoading(false);
@@ -497,8 +512,8 @@ $(document).ready(function(){
         });
     }
 
-    // Inicializar carga de organizaciones
-    cargarOrganizaciones();
+    // Inicializar carga de profesionales
+    cargarPractitioners();
 
     // Cancelar edición
     $("#btnCancelarEdicion").on("click", function(){
@@ -511,8 +526,8 @@ $(document).ready(function(){
 
     // Guardar edición
     $("#btnGuardarEdicion").on("click", function(){
-        if(!organizationActual) {
-            toastr.error("No hay organization seleccionado");
+        if(!practitionerActual) {
+            toastr.error("No hay profesional seleccionado");
             return;
         }
 
@@ -521,8 +536,8 @@ $(document).ready(function(){
             updatedJson = JSON.parse(editor.getValue());
             
             // Validación básica del JSON
-            if (!updatedJson.resourceType || updatedJson.resourceType !== "Organization") {
-                toastr.error("El JSON debe ser un recurso FHIR Organization válido");
+            if (!updatedJson.resourceType || updatedJson.resourceType !== "Practitioner") {
+                toastr.error("El JSON debe ser un recurso FHIR Practitioner válido");
                 return;
             }
             
@@ -534,12 +549,12 @@ $(document).ready(function(){
         toggleLoading(true);
 
         $.ajax({
-            url: "/backend/services/organization/updateOrganization.php?id=" + organizationActual,
+            url: "/backend/services/practitioner/updatePractitioner.php?id=" + practitionerActual,
             method: "PUT",
             data: JSON.stringify(updatedJson),
             contentType: "application/fhir+json",
             success: function(resp){
-                toastr.success("organization actualizado correctamente");
+                toastr.success("Profesional actualizado correctamente");
                 editor.setOption("readOnly", true);
                 $("#btnGuardarEdicion").hide();
                 $("#btnCancelarEdicion").hide();
@@ -548,7 +563,7 @@ $(document).ready(function(){
                 dataTable.ajax.reload();
             },
             error: function(xhr, status, error){
-                toastr.error("Error al actualizar organization: " + error);
+                toastr.error("Error al actualizar profesional: " + error);
             },
             complete: function(){
                 toggleLoading(false);
