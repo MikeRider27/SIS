@@ -844,8 +844,8 @@ include('/var/www/html/view/includes/footer.php');
           const response = JSON.parse(data);
           if (response.status === "success") {
             $('#id_medico').val(response.data.id);
-            $('#nombre_medico').val(response.data.pnombre+' '+response.data.snombre);
-            $('#apellido_medico').val(response.data.papellido+' '+response.data.sapellido);
+            $('#nombre_medico').val(response.data.first_name+' '+response.data.middle_name);
+            $('#apellido_medico').val(response.data.last_name+' '+response.data.second_last_name);
             // Convertir fecha yyyy-mm-dd a dd/mm/yyyy
             const fechaNacimiento = new Date(response.data.fechanac);
 
