@@ -124,7 +124,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         $medicamentos = $stmt8->fetchAll(PDO::FETCH_ASSOC);
       
         // traemos las alergias
-        $sql9 = "SELECT c.id, c.patient_id, c.consultation_id, c.allergy_code, c.code, c.type, a.local_term 
+        $sql9 = "SELECT c.id, c.patient_id, c.consultation_id, c.allergy_code, c.code, c.type, a.local_term, a.category
                  FROM consultation_allergy c inner join allergies a on c.allergy_code = a.local_code  
                  WHERE c.patient_id = :id_paciente AND c.consultation_id = :id_consulta";
         $stmt9 = $dbconnFHIR->prepare($sql9);
@@ -430,7 +430,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "reference" => "urn:uuid:".$PacienteID
                     ],
                     "onsetPeriod" => [
-                        "start" => $diagnostico['diagnostic_date']
+                         "start" => date('Y-m-d\TH:i:s', strtotime($diagnostico['diagnostic_date']))
                     ],
                     "note" => [
                         [
@@ -474,7 +474,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         ]
                     ],
                     "category" => [
-                        $alergia['type']
+                        $alergia['category']
                     ],
                     "code" => [
                         "coding" => [
@@ -495,6 +495,11 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
 
         // Agregamos los medicamentos al Bundle FHIR
         foreach ($medicamentos as $medicamento) {
+              $fechaMedicamento = !empty($medicamento['created_at']) 
+        ? date('Y-m-d\TH:i:s', strtotime($medicamento['created_at']))
+        : date('Y-m-d\TH:i:s');
+
+
             $entryBundleArray[] = 
             [
                 "fullUrl" => "urn:uuid:".$medicamento['code'],
@@ -515,7 +520,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                     "subject" => [
                         "reference" => "urn:uuid:".$PacienteID
                     ],
-                    "effectiveDateTime" => $medicamento['created_at'] ?? date('c'),
+                    "effectiveDateTime" => $fechaMedicamento, 
                     "dosage" => [
                         [
                             "text" => $medicamento['dose'],

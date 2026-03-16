@@ -138,6 +138,7 @@ function mapFhirToLocal($fhirData, $documento, $tipo) {
     $name = $fhirData['name'][0] ?? [];
     $given = $name['given'] ?? [];
     $family = $name['family'] ?? '';
+    $id = $fhirData['id'] ?? null; // ID del recurso FHIR
     
     // Separar apellidos (asumiendo que vienen juntos como "AGUIRRE GARCIA")
     $apellidos = explode(' ', trim($family), 2);
@@ -151,8 +152,8 @@ function mapFhirToLocal($fhirData, $documento, $tipo) {
     // Extraer el valor del documento
     $document = $documento;
     
-    // Generar UUID para el campo code
-    $code = Uuid::uuid4()->toString();
+    // Cargamo con el ID del recurso FHIR para referencia futura
+    $code = $id;
     
     return [
         'document' => $document,

@@ -139,6 +139,7 @@ function mapFhirPatientToLocal($fhirData, $documento, $type) {
     $name = $fhirData['name'][0] ?? [];
     $given = $name['given'] ?? [];
     $family = $name['family'] ?? '';
+    $id = $fhirData['id'] ?? null; // ID del recurso FHIR
     
     // Separar apellidos (asumiendo que vienen juntos como "VILLALBA CABAÑAS")
     $apellidos = explode(' ', trim($family), 2);
@@ -153,10 +154,10 @@ function mapFhirPatientToLocal($fhirData, $documento, $type) {
     $birth_date = $fhirData['birthDate'] ?? null;
     
     // Extraer género (mapear de FHIR a tu formato)
-    $gender = mapFhirGender($fhirData['gender'] ?? '');
+    $gender = $fhirData['gender'] ?? '';
     
-    // Generar UUID para el campo code
-    $code = Uuid::uuid4()->toString();
+    // Cargamo con el ID del recurso FHIR para referencia futura
+    $code = $id;
     
     return [
         'document' => $documento,
@@ -172,23 +173,7 @@ function mapFhirPatientToLocal($fhirData, $documento, $type) {
     ];
 }
 
-/**
- * Mapea el género de FHIR a tu formato local
- */
-function mapFhirGender($fhirGender) {
-    switch (strtolower($fhirGender)) {
-        case 'male':
-            return 'M';
-        case 'female':
-            return 'F';
-        case 'other':
-            return 'O';
-        case 'unknown':
-            return 'U';
-        default:
-            return null;
-    }
-}
+
 
 /**
  * Guarda paciente en base de datos local
