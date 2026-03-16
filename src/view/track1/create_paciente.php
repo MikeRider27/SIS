@@ -915,11 +915,11 @@ include('/var/www/html/view/includes/footer.php');
         const response = JSON.parse(data);
         if (response.status === "success") {
             $('#id_paciente').val(response.data.id);
-            $('#nombre_paciente').val(response.data.pnombre + ' ' + response.data.snombre);
-            $('#apellido_paciente').val(response.data.papellido + ' ' + response.data.sapellido);
-            
+            $('#nombre_paciente').val(response.data.first_name + ' ' + response.data.middle_name);
+            $('#apellido_paciente').val(response.data.last_name + ' ' + response.data.second_last_name);
+
             // SOLUCIÓN CORREGIDA - Convertir fecha yyyy-mm-dd a dd/mm/yyyy
-            const fechaParts = response.data.fechanac.split('-');
+            const fechaParts = response.data.birth_date.split('-');
             if (fechaParts.length === 3) {
                 const anio = fechaParts[0];
                 const mes = fechaParts[1]; // Ya viene como 05 (string)
@@ -936,7 +936,7 @@ include('/var/www/html/view/includes/footer.php');
                 $('#fecha_nacimiento_paciente').val(`${dia}/${mes}/${anio}`);
             }
             
-            $('#sexo_paciente').val(response.data.sexo == 'male' ? 'Masculino' : 'Femenino');       
+            $('#sexo_paciente').val(response.data.gender == 'male' ? 'Masculino' : 'Femenino');       
         }
     })
     .always(() => {

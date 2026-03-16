@@ -12,115 +12,233 @@ use Ramsey\Uuid\Uuid;
 // Conexión a la base de datos
 $dbconn = getConnection();
 
-if (isset($_POST['accion']) && $_POST['accion'] === "agregar") {
+if (isset($_POST['accion']) && $_POST['accion'] === "search") {
 
     // Recolección segura de variables
-    $identifier         = trim($_POST['identificacion']) ?? '';
-    $name               = mb_strtoupper(trim($_POST['nombre']), 'UTF-8');
-    $last_name          = mb_strtoupper(trim($_POST['apellido']), 'UTF-8');
-    $gender             = $_POST['sexo'] ?? '';
-    $sexoFHIR = "unknown";
-    if ($gender == "1") $sexoFHIR = "female";
-    if ($gender == "2") $sexoFHIR = "male";
-    $birth_date         = $_POST['fecha_nacimiento'] ?? '';
-    $country            = $_POST['country'] ?? '';
-    $code               = Uuid::uuid4()->toString();
+    $identifier = isset($_POST['documento']) ? trim($_POST['documento']) : '';
+    $type = isset($_POST['type']) ? trim($_POST['type']) : '';
 
     try {
-        // Iniciar transacción
-        $dbconn->beginTransaction();
-
-        // Inserción del nuevo profesional
-        $sql = "INSERT INTO paciente2026 (documento, nombre, apellido, fechanac, sexo, pais, code)
-                VALUES (:documento, :nombre, :apellido, :fechanac, :sexo, :pais, :code)";
-
+        // PASO 1: Buscar al paciente en la base de datos local
+        $sql = "SELECT id, type_code, document, first_name, middle_name, last_name, second_last_name, birth_date, gender, code
+                FROM patient 
+                WHERE document = :documento AND type_code = :type
+                LIMIT 1;";
         $stmt = $dbconn->prepare($sql);
         $stmt->bindValue(':documento', $identifier, PDO::PARAM_STR);
-        $stmt->bindValue(':nombre', $name, PDO::PARAM_STR);
-        $stmt->bindValue(':apellido', $last_name, PDO::PARAM_STR);
-        $stmt->bindValue(':fechanac', $birth_date, PDO::PARAM_STR);
-        $stmt->bindValue(':sexo', $sexoFHIR, PDO::PARAM_STR);
-        $stmt->bindValue(':pais', $country, PDO::PARAM_STR);
-        $stmt->bindValue(':code', $code, PDO::PARAM_STR);       
+        $stmt->bindValue(':type', $type, PDO::PARAM_STR);
         $stmt->execute();
 
-        // Obtener ID del registro insertado
-        $paciente = $dbconn->lastInsertId();
+        $localData = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Confirmar transacción
-        $dbconn->commit();
-
-        if ($paciente) {
-            $status = "success";
-            $message = "Paciente registrado correctamente.";
-        } else {
-            $status = "error";
-            $message = "No se pudo registrar el paciente.";
+        if ($localData) {
+            // Paciente encontrado en base de datos local
+            echo json_encode([
+                "status" => "success",
+                "source" => "local",
+                "message" => "Paciente encontrado en base local.",
+                "data" => $localData
+            ]);
+            exit;
         }
 
-        // Respuesta JSON
-        echo json_encode([
-            "status" => $status,
-            "message" => $message
-        ]);
+        // PASO 2: No encontrado localmente, buscar en servidor FHIR
+        $fhirData = searchPatientInFhirServer($identifier, $type);
+        
+        if ($fhirData) {
+            // PASO 3: Guardar en base de datos local
+            $savedData = savePatientToLocal($dbconn, $fhirData, $type);
+            
+            if ($savedData) {
+                echo json_encode([
+                    "status" => "success",
+                    "source" => "fhir",
+                    "message" => "Paciente encontrado en FHIR y guardado localmente.",
+                    "data" => $savedData
+                ]);
+            } else {
+                echo json_encode([
+                    "status" => "error",
+                    "source" => "fhir",
+                    "message" => "Paciente encontrado en FHIR pero error al guardar localmente.",
+                    "data" => $fhirData
+                ]);
+            }
+        } else {
+            // No encontrado en ninguna parte
+            echo json_encode([
+                "status" => "error",
+                "source" => "none",
+                "message" => "Paciente no encontrado en base local ni en servidor FHIR.",
+                "data" => []
+            ]);
+        }
 
     } catch (Exception $e) {
-        // Revertir transacción ante error
-        if ($dbconn->inTransaction()) {
-            $dbconn->rollBack();
-        }
-
         echo json_encode([
             "status" => "error",
-            "message" => "Error al registrar: " . $e->getMessage()
+            "message" => "Error en el proceso: " . $e->getMessage()
         ]);
     }
-
-} else if (isset($_POST['accion']) && $_POST['accion'] === "search") {
-
-   // Recolección segura de variables
-    $identifier        = isset($_POST['documento']) ? trim($_POST['documento']) : '';
-    $type    = isset($_POST['type']) ? trim($_POST['type']) : '';
-
-
-    try {
-    // Buscar al profesional en la base de datos
-    $sql = "SELECT id, tipo, codetipo, documento, pnombre, snombre, papellido, sapellido, fechanac, sexo, code
-            FROM public.paciente2026 
-            WHERE documento = :documento AND tipo = :type
-            LIMIT 1;";
-    $stmt = $dbconn->prepare($sql);
-    $stmt->bindValue(':documento', $identifier, PDO::PARAM_STR);
-    $stmt->bindValue(':type', $type, PDO::PARAM_STR);
-    $stmt->execute();
-
-    $data = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($data) {
-        $status = "success";
-        $message = "Paciente encontrado.";
-    } else {
-        $status = "error";
-        $message = "No se pudo encontrar el paciente.";
-    }
-
-    // Respuesta JSON
-    echo json_encode([
-        "status" => $status,
-        "message" => $message,
-        "data" => $data ?: []
-    ]);
-
-} catch (Exception $e) {
-    echo json_encode([
-        "status" => "error",
-        "message" => "Error al registrar: " . $e->getMessage()
-    ]);
-}
 } else {
     echo json_encode([
         "status" => "error",
         "message" => "Formulario no enviado o acción inválida."
     ]);
+}
+
+/**
+ * Busca un paciente en el servidor FHIR
+ */
+function searchPatientInFhirServer($documento, $type) {
+    try {
+        // Construir URL de búsqueda en FHIR
+        $url = APP_FHIR_SERVER . '/Patient?identifier=' . urlencode($documento);
+        
+        // Inicializar cURL
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        // Ejecutar petición
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200 && $response) {
+            $fhirResponse = json_decode($response, true);
+            
+            // Verificar si hay resultados
+            if (isset($fhirResponse['entry']) && count($fhirResponse['entry']) > 0) {
+                // Tomar el primer resultado
+                $patient = $fhirResponse['entry'][0]['resource'];
+                
+                // Mapear datos FHIR a formato local
+                return mapFhirPatientToLocal($patient, $documento, $type);
+            }
+        }
+        
+        return null;
+        
+    } catch (Exception $e) {
+        error_log("Error buscando paciente en FHIR: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Mapea datos del paciente desde formato FHIR a formato local
+ */
+function mapFhirPatientToLocal($fhirData, $documento, $type) {
+    // Extraer nombre
+    $name = $fhirData['name'][0] ?? [];
+    $given = $name['given'] ?? [];
+    $family = $name['family'] ?? '';
+    
+    // Separar apellidos (asumiendo que vienen juntos como "VILLALBA CABAÑAS")
+    $apellidos = explode(' ', trim($family), 2);
+    $last_name = $apellidos[0] ?? '';        // Primer apellido
+    $second_last_name = $apellidos[1] ?? ''; // Segundo apellido (si existe)
+    
+    // Separar nombres
+    $first_name = $given[0] ?? '';      // Primer nombre
+    $middle_name = $given[1] ?? '';     // Segundo nombre (si existe)
+    
+    // Extraer fecha de nacimiento
+    $birth_date = $fhirData['birthDate'] ?? null;
+    
+    // Extraer género (mapear de FHIR a tu formato)
+    $gender = mapFhirGender($fhirData['gender'] ?? '');
+    
+    // Generar UUID para el campo code
+    $code = Uuid::uuid4()->toString();
+    
+    return [
+        'document' => $documento,
+        'type_code' => $type,
+        'first_name' => $first_name,
+        'middle_name' => $middle_name,
+        'last_name' => $last_name,
+        'second_last_name' => $second_last_name,
+        'birth_date' => $birth_date,
+        'gender' => $gender,
+        'code' => $code, // UUID generado
+        'fhir_id' => $fhirData['id'] ?? null
+    ];
+}
+
+/**
+ * Mapea el género de FHIR a tu formato local
+ */
+function mapFhirGender($fhirGender) {
+    switch (strtolower($fhirGender)) {
+        case 'male':
+            return 'M';
+        case 'female':
+            return 'F';
+        case 'other':
+            return 'O';
+        case 'unknown':
+            return 'U';
+        default:
+            return null;
+    }
+}
+
+/**
+ * Guarda paciente en base de datos local
+ */
+function savePatientToLocal($dbconn, $data, $type) {
+    try {
+        // Verificar si ya existe (por si acaso)
+        $checkSql = "SELECT id FROM patient WHERE document = :document AND type_code = :type_code LIMIT 1";
+        $checkStmt = $dbconn->prepare($checkSql);
+        $checkStmt->bindValue(':document', $data['document'], PDO::PARAM_STR);
+        $checkStmt->bindValue(':type_code', $type, PDO::PARAM_STR);
+        $checkStmt->execute();
+        
+        if ($checkStmt->fetch()) {
+            // Ya existe, obtener los datos completos
+            $sql = "SELECT id, type_code, document, first_name, middle_name, last_name, second_last_name, birth_date, gender, code
+                    FROM patient 
+                    WHERE document = :document AND type_code = :type_code 
+                    LIMIT 1";
+            $stmt = $dbconn->prepare($sql);
+            $stmt->bindValue(':document', $data['document'], PDO::PARAM_STR);
+            $stmt->bindValue(':type_code', $type, PDO::PARAM_STR);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        
+        // Insertar nuevo registro
+        $sql = "INSERT INTO patient (type_code, document, first_name, middle_name, last_name, second_last_name, birth_date, gender, code)
+                VALUES (:type_code, :document, :first_name, :middle_name, :last_name, :second_last_name, :birth_date, :gender, :code)
+                RETURNING id, type_code, document, first_name, middle_name, last_name, second_last_name, birth_date, gender, code";
+        
+        $stmt = $dbconn->prepare($sql);
+        $stmt->bindValue(':type_code', $data['type_code'], PDO::PARAM_STR);
+        $stmt->bindValue(':document', $data['document'], PDO::PARAM_STR);
+        $stmt->bindValue(':first_name', $data['first_name'], PDO::PARAM_STR);
+        $stmt->bindValue(':middle_name', $data['middle_name'], PDO::PARAM_STR);
+        $stmt->bindValue(':last_name', $data['last_name'], PDO::PARAM_STR);
+        $stmt->bindValue(':second_last_name', $data['second_last_name'], PDO::PARAM_STR);
+        $stmt->bindValue(':birth_date', $data['birth_date'], PDO::PARAM_STR);
+        $stmt->bindValue(':gender', $data['gender'], PDO::PARAM_STR);
+        $stmt->bindValue(':code', $data['code'], PDO::PARAM_STR);
+        
+        $stmt->execute();
+        
+        // Obtener el registro insertado
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+        
+    } catch (Exception $e) {
+        error_log("Error guardando paciente localmente: " . $e->getMessage());
+        return null;
+    }
 }
 ?>
