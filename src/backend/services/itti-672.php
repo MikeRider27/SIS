@@ -29,7 +29,8 @@ header('Access-Control-Allow-Headers: Authorization, Content-Type');
 $identifier = isset($_GET['identifier']) ? $_GET['identifier'] : '';
 
 // Construye la URL para DocumentReference
-$url = APP_FHIR_SERVER . "/fhir/DocumentReference/?patient.identifier=$identifier&_format=json&status=current";
+$url = APP_FHIR_SERVER . "/DocumentReference/?patient.identifier=$identifier&_format=json&status=current";
+
 
 // 1. Obtener DocumentReference
 $data = fetchPatientData($url);
@@ -44,7 +45,7 @@ if ($data) {
         $custodianRef = $bundle['entry'][0]['resource']['custodian']['reference']; 
 
         // 3. Hacer GET al Organization
-        $orgUrl = APP_FHIR_SERVER . "/fhir/$custodianRef";
+        $orgUrl = APP_FHIR_SERVER . "/$custodianRef";
         $orgData = fetchPatientData($orgUrl);
         if ($orgData) {
             $orgResource = json_decode($orgData, true);
@@ -58,25 +59,7 @@ if ($data) {
         }
     }
 
-    // 5. Si no existe custodian o falló la consulta, agregar Organización por defecto
-    if (!$orgAdded) {
-        $defaultOrg = [
-            "resourceType" => "Organization",
-            "id" => "MSPBS",
-            "identifier" => [
-                [ "value" => "MSPBS" ]
-            ],
-            "type" => [
-                [ "text" => "Gobierno" ]
-            ],
-            "name" => "MINISTERIO DE SALUD"
-        ];
-
-        $bundle['entry'][] = [
-            "fullUrl" => "https://mspbs.gov.py/fhir/Organization/MSPBS",
-            "resource" => $defaultOrg
-        ];
-    }
+   
 
     echo json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 } else {

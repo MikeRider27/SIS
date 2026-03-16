@@ -10,44 +10,18 @@ function routeHandler($method, $route)
             '/salir' => '/view/login/salir.php',
             '/paciente/view' => '/view/rda/viewer3.php',
             '/paciente/ips' => '/view/rda/ips.php',
-            '/consultas/create' => '/view/track1/create_paciente.php',
+            '/consultas/create' => '/view/track1/create_paciente.php',         
             
             
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            //'/consultas/create/vacunacion' => '/view/consultas/create_vacunacion.php',
+
             '/paciente/search' => '/view/paciente/index.php',
-            '/paciente/view' => '/view/track1/viewer3.php',
-            '/paciente/ips' => '/view/paciente/ips.php',
+            '/paciente/view' => '/view/track1/viewer3.php',         
             '/itti67/search' => '/view/paciente/ips2.php',
             '/ips/view' => '/view/paciente/viewer2.php',
             //'/icvp/vaccine' => '/view/ICVP/create.php',
-            '/paciente/translate' => '/view/paciente/translate.php',
-            '/paciente/lookup' => '/view/paciente/lookup.php',
-            '/paciente/vhl_generar' => '/view/paciente/vhl_generar.php',
-            '/paciente/vhl_ver' => '/view/paciente/vhl_ver.php',
-            '/paciente/ips/icvp' => '/view/paciente/dvc_generar.php',
-            '/paciente/dvc_ver' => '/view/paciente/dvc_ver.php',
-            '/vacunaciones/create' => '/view/vacunaciones/create.php',
-            '/qualification/iti-78/search' => '/view/qualification/iti-78.php',
-            '/qualification/iti-104/create' => '/view/qualification/iti-104.php',
+         
+      
+      
             //pacientes
             '/pacientes/list' => '/view/pacientes/list.php',
             '/pacientes/create' => '/view/pacientes/create.php',
