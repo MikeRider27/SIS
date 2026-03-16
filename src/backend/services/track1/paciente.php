@@ -64,7 +64,7 @@ if (isset($_SESSION['idUsuario'])) {
                     $antecedente = Uuid::uuid4()->toString();        
                 
                     $sql6 = "INSERT INTO consultation_diagnostic (patient_id, consultation_id, icd10_code, diagnostic_date, estatus, note, code)
-                             VALUES(:id_paciente, :id_consulta, :codigo_cie10:, fecha, :estado, :note, :code)";
+                             VALUES(:id_paciente, :id_consulta, :codigo_cie10, :fecha, :estado, :note, :code)";
                     $stmt6 = $dbconn->prepare($sql6);
                     $stmt6->bindParam(':id_paciente', $id_paciente);
                     $stmt6->bindParam(':id_consulta', $consultaID);

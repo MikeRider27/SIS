@@ -96,7 +96,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         // Organización
         $sql4 = "SELECT id, identifier, name, type, identifier AS code
                  FROM organization 
-                 WHERE p.id = :id_servicio";
+                 WHERE id = :id_servicio";
         $stmt4 = $dbconnFHIR->prepare($sql4);
         $stmt4->bindParam(':id_servicio', $consultas['organization_id']);
         $stmt4->execute();
@@ -116,8 +116,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
         // traemos los medicamentos
         $sql8 = "SELECT c.id, c.patient_id, c.consultation_id, c.medication_code, c.code, c.dose, c.via, c.created_at, m.local_term 
                  FROM consultation_medication c INNER JOIN medication m ON c.medication_code = m.local_code
-                 WHERE c.patient_id = :id_paciente AND c.consultation_id = :id_consulta  
-                 GROUP BY c.medication_code, c.code, m.local_term, c.dose, c.via, m.description, c.created_at";
+                 WHERE c.patient_id = :id_paciente AND c.consultation_id = :id_consulta";
         $stmt8 = $dbconnFHIR->prepare($sql8);
         $stmt8->bindParam(':id_paciente', $id_paciente, PDO::PARAM_INT);
         $stmt8->bindParam(':id_consulta', $consultas['id'], PDO::PARAM_INT);
@@ -413,7 +412,7 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "coding" => [
                             [
                                 "system" => "http://terminology.hl7.org/CodeSystem/condition-ver-status",
-                                "code" => $diagnostico['status']
+                                "code" => $diagnostico['estatus']
                             ]
                         ]
                     ],
@@ -658,8 +657,8 @@ function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
                         "given" => $given
                     ]
                 ],
-                "gender" => $paciente['sexo'],
-                "birthDate" => $paciente['fechanac']
+                "gender" => $paciente['gender'],
+                "birthDate" => $paciente['birth_date']
             ],
             "request" => [ "method" => "PUT", "url" => "Patient/".$PacienteID ]
         ];           
