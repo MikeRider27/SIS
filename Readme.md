@@ -125,3 +125,17 @@ docker-compose down
     externo.
 -   Si cambias la configuración de base de datos, modifica el archivo
     `src/core/config.php`.
+
+------------------------------------------------------------------------
+
+# 👤 Autor
+
+-   **Miguel Villalba**
+-   📧 mike.mavc27@gmail.com
+
+------------------------------------------------------------------------
+
+# 📄 Licencia
+
+Este proyecto está bajo la licencia **MIT**. Ver el archivo
+[LICENSE](LICENSE) para más detalles.
