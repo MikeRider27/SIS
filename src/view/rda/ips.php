@@ -53,6 +53,7 @@ $dbconn = getConnection();
                             <h3 class="card-title m-0"><strong>Resultados</strong></h3>
                         </div>
                         <div class="card-body p-0">
+                            <div id="pacienteInfo" class="alert alert-info m-3 d-none"></div>
                             <table id="listado" class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
@@ -83,66 +84,100 @@ $(function() {
         "paging": false,
         "info": false,
         "ordering": false,
-        "ajax": {
-            url: "/backend/services/itti-672.php",
-            method: "GET",
-            data: function(d) {
-                return { identifier: $('#id').val().trim() };
-            },
-            dataSrc: function(json) {
-                const identifier = $('#id').val().trim();
-                if (!identifier) return [];
-                
-                if (json.status === "error") {
-                    toastr.warning(json.message);
-                    return [];
-                }
+        "ajax": function(data, callback, settings) {
+            const identifier = $('#id').val().trim();
 
-                const orgMap = {};
-                const rows = [];
-
-                // Procesar organizaciones primero
-                if (Array.isArray(json.entry)) {
-                    json.entry.forEach(entry => {
-                        const res = entry.resource || {};
-                        if (res.resourceType === "Organization") {
-                            orgMap[res.id] = res.name || "Organización desconocida";
-                        }
-                    });
-
-                    // Procesar DocumentReference
-                    json.entry.forEach(entry => {
-                        const res = entry.resource || {};
-                        if (res.resourceType === "DocumentReference") {
-                            const orgRef = res.custodian?.reference || "";
-                            const orgId = orgRef.replace("Organization/", "");
-                            const orgName = orgMap[orgId] || "MINISTERIO DE SALUD";
-                            
-                            rows.push({
-                                organization: orgName,
-                                lastUpdated: res.meta?.lastUpdated || "N/A",
-                                documentUrl: res.content?.[0]?.attachment?.url || ""
-                            });
-                        }
-                    });
-                }
-
-                return rows;
-            },
-            error: function(xhr, textStatus, error) {
-                const errorMessages = {
-                    'timeout': 'La solicitud ha superado el tiempo de espera',
-                    'abort': 'La solicitud ha sido abortada',
-                    'parsererror': 'Error al procesar la respuesta del servidor'
-                };
-                
-                const message = errorMessages[textStatus] || `Error: ${error || 'Desconocido'}`;
-                toastr.error(message);
+            // No disparar ninguna consulta (ni al backend ni al servidor FHIR)
+            // hasta que el usuario haya ingresado un identificador y buscado.
+            if (!identifier) {
+                $('#pacienteInfo').addClass('d-none');
+                callback({ data: [] });
+                return;
             }
+
+            $.ajax({
+                url: "/backend/services/itti-672.php",
+                method: "GET",
+                data: { identifier: identifier },
+                dataType: "json",
+                success: function(json) {
+                    if (json.status === "error") {
+                        toastr.warning(json.message);
+                        $('#pacienteInfo').addClass('d-none');
+                        callback({ data: [] });
+                        return;
+                    }
+
+                    const orgMap = {};
+                    const patientMap = {};
+                    const rows = [];
+
+                    function nombrePaciente(res) {
+                        const name = res?.name?.[0];
+                        if (!name) return "Paciente desconocido";
+                        const given = Array.isArray(name.given) ? name.given.join(' ') : '';
+                        const family = name.family || '';
+                        return (given + ' ' + family).trim() || "Paciente desconocido";
+                    }
+
+                    // Procesar organizaciones y pacientes primero
+                    if (Array.isArray(json.entry)) {
+                        json.entry.forEach(entry => {
+                            const res = entry.resource || {};
+                            if (res.resourceType === "Organization") {
+                                orgMap[res.id] = res.name || "Organización desconocida";
+                            } else if (res.resourceType === "Patient") {
+                                patientMap[res.id] = nombrePaciente(res);
+                            }
+                        });
+
+                        // Procesar DocumentReference
+                        json.entry.forEach(entry => {
+                            const res = entry.resource || {};
+                            if (res.resourceType === "DocumentReference") {
+                                const orgRef = res.custodian?.reference || "";
+                                const orgId = orgRef.replace("Organization/", "");
+                                const orgName = orgMap[orgId] || "MINISTERIO DE SALUD";
+
+                                rows.push({
+                                    organization: orgName,
+                                    lastUpdated: res.meta?.lastUpdated || "N/A",
+                                    documentUrl: res.content?.[0]?.attachment?.url || ""
+                                });
+                            }
+                        });
+                    }
+
+                    // Mostrar el nombre del paciente una sola vez arriba de la tabla
+                    // (todos los resultados corresponden al mismo paciente buscado)
+                    const nombres = Object.values(patientMap);
+                    if (nombres.length && rows.length) {
+                        $('#pacienteInfo').text('Paciente: ' + nombres[0]).removeClass('d-none');
+                    } else {
+                        $('#pacienteInfo').addClass('d-none');
+                    }
+
+                    callback({ data: rows });
+                },
+                error: function(xhr, textStatus, error) {
+                    const errorMessages = {
+                        'timeout': 'La solicitud ha superado el tiempo de espera',
+                        'abort': 'La solicitud ha sido abortada',
+                        'parsererror': 'Error al procesar la respuesta del servidor'
+                    };
+
+                    let message = errorMessages[textStatus] || `Error: ${error || 'Desconocido'}`;
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    toastr.error(message);
+                    callback({ data: [] });
+                }
+            });
         },
         // En la configuración de las columnas del DataTable:
         "columns": [
-            { 
+            {
                 "data": "organization",
                 "className": "align-middle"
             },

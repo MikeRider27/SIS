@@ -5,36 +5,10 @@ header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 
 include('/var/www/html/core/connection.php');
+require_once('/var/www/html/core/FhirClient.php');
 require_once('/var/www/html/vendor/autoload.php');
 
 use Ramsey\Uuid\Uuid;
-
-function sendFHIRRequest($url, $resource, $method) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/fhir+json',
-        'Accept: application/fhir+json'
-    ]);
-    
-    if ($resource !== null) {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($resource));
-    }
-
-    $response = curl_exec($ch);
-    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    if (curl_errno($ch)) {
-        $error = 'Error de cURL: ' . curl_error($ch);
-        curl_close($ch);
-        return ['status' => 500, 'body' => json_encode(['error' => $error])];
-    }
-    curl_close($ch);
-
-    return ['status' => $httpcode, 'body' => $response];
-}
 
 // ===============================
 // 1. Captura de datos del formulario
@@ -50,6 +24,7 @@ if(!$identifier || !$name){
 
 // Conexión a la base de datos local
 $dbconn = getConnection();
+requireDbConnection($dbconn);
 
 try {
     // ===============================
@@ -118,16 +93,16 @@ try {
         "text" => [
             "status" => "generated",
             "div" => "<div xmlns=\"http://www.w3.org/1999/xhtml\">
-                        <p class=\"res-header-id\"><b>Generated Narrative: Organization {$code}</b></p>
-                        <a name=\"{$identifier}\"> </a>
-                        <a name=\"hc{$identifier}\"> </a>
+                        <p class=\"res-header-id\"><b>Generated Narrative: Organization " . fhirEscape($code) . "</b></p>
+                        <a name=\"" . fhirEscape($identifier) . "\"> </a>
+                        <a name=\"hc" . fhirEscape($identifier) . "\"> </a>
                         <div style=\"display: inline-block; background-color: #d9e0e7; padding: 6px; margin: 4px; border: 1px solid #8da1b4; border-radius: 5px; line-height: 60%\">
                             <p style=\"margin-bottom: 0px\"/>
                             <p style=\"margin-bottom: 0px\">Profile: <a href=\"StructureDefinition-OrganizacionPy.html\">Organizacion Paraguay</a></p>
                         </div>
-                        <p><b>identifier</b>: {$identifier}</p>
-                        <p><b>type</b>: <span title=\"Codes:\">{$type}</span></p>
-                        <p><b>name</b>: {$name}</p>
+                        <p><b>identifier</b>: " . fhirEscape($identifier) . "</p>
+                        <p><b>type</b>: <span title=\"Codes:\">" . fhirEscape($type) . "</span></p>
+                        <p><b>name</b>: " . fhirEscape($name) . "</p>
                       </div>"
         ],
         "identifier" => [[ 
@@ -170,12 +145,8 @@ try {
     }
 
     $validationResponse = json_decode($validation['body'], true);
-    if (isset($validationResponse['issue'])) {
-        foreach ($validationResponse['issue'] as $issue) {
-            if (in_array($issue['severity'], ['error','fatal'])) {
-                throw new Exception('Validación FHIR fallida: ' . json_encode($validationResponse));
-            }
-        }
+    if (fhirHasFatalIssues($validationResponse)) {
+        throw new Exception('Validación FHIR fallida: ' . json_encode($validationResponse));
     }
 
     // ===============================

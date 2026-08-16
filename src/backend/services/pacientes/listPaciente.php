@@ -2,21 +2,11 @@
 header('Content-Type: application/json');
 
 include('/var/www/html/core/connection.php');
-
-function fetchFHIR($url) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/fhir+json']);
-    $response = curl_exec($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    return ['status' => $status, 'body' => $response];
-}
+require_once('/var/www/html/core/FhirClient.php');
 
 // Traer pacientes ordenados por fecha
 $url = APP_FHIR_SERVER . "/Patient?_count=50&_sort=-_lastUpdated";
-$result = fetchFHIR($url);
+$result = sendFHIRRequest($url, null, 'GET');
 
 if ($result['status'] !== 200) {
     echo json_encode(['status'=>'error','message'=>'No se pudo obtener pacientes']);

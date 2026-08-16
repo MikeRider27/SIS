@@ -33,6 +33,29 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 
+CREATE TABLE IF NOT EXISTS permissions (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    label VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_permissions (
+    user_id INTEGER NOT NULL,
+    permission_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, permission_id),
+    CONSTRAINT fk_user_permissions_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_user_permissions_permission
+        FOREIGN KEY (permission_id)
+        REFERENCES permissions(id)
+        ON DELETE CASCADE
+);
+
+
 CREATE TABLE IF NOT EXISTS document_type (
     id VARCHAR(2) PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,

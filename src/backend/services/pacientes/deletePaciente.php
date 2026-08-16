@@ -5,6 +5,7 @@ header('Access-Control-Allow-Methods: DELETE');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 
 include('/var/www/html/core/connection.php');
+require_once('/var/www/html/core/FhirClient.php');
 
 // ===============================
 // 1. Obtener y validar ID
@@ -21,6 +22,7 @@ if (!$id) {
 
 // Conexión a la base de datos local
 $dbconn = getConnection();
+requireDbConnection($dbconn);
 
 try {
     // Iniciar transacción para la base de datos local
@@ -71,25 +73,10 @@ try {
     
     if ($fhir_code) {
         $fhirUrl = APP_FHIR_SERVER . "/Patient/" . urlencode($fhir_code);
-        
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $fhirUrl);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: application/fhir+json',
-            'Content-Type: application/fhir+json'
-        ]);
-        
-        $fhir_response = curl_exec($ch);
-        $fhir_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if (curl_errno($ch)) {
-            $error = 'Error de cURL: ' . curl_error($ch);
-            curl_close($ch);
-            throw new Exception($error);
-        }
-        curl_close($ch);
+
+        $deletion = sendFHIRRequest($fhirUrl, null, 'DELETE');
+        $fhir_response = $deletion['body'];
+        $fhir_status = $deletion['status'];
 
         // Verificar respuesta FHIR (204 No Content o 200 OK son éxito para DELETE)
         // También aceptamos 404 como éxito si el recurso no existía

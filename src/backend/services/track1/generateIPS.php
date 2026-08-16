@@ -1,14 +1,10 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 // Encabezado para indicar que la respuesta es JSON y codificado en UTF-8
 header('Content-Type: application/json; charset=UTF-8');
 
 // Cargar dependencias
 require '/var/www/html/vendor/autoload.php';
 use Ramsey\Uuid\Uuid;
-require '/var/www/html/backend/services/translateCode2.php';
 
 function generarFhirBundle($id_paciente, $id_consulta, $dbconnFHIR)
 {

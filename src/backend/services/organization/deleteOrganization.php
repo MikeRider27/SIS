@@ -5,36 +5,10 @@ header('Access-Control-Allow-Methods: DELETE, POST, GET');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 
 include('/var/www/html/core/connection.php');
+require_once('/var/www/html/core/FhirClient.php');
 require_once('/var/www/html/vendor/autoload.php');
 
 use Ramsey\Uuid\Uuid;
-
-function sendFHIRRequest($url, $resource = null, $method) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/fhir+json',
-        'Accept: application/fhir+json'
-    ]);
-    
-    if ($resource !== null) {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($resource));
-    }
-
-    $response = curl_exec($ch);
-    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    if (curl_errno($ch)) {
-        $error = 'Error de cURL: ' . curl_error($ch);
-        curl_close($ch);
-        return ['status' => 500, 'body' => json_encode(['error' => $error])];
-    }
-    curl_close($ch);
-
-    return ['status' => $httpcode, 'body' => $response];
-}
 
 // ===============================
 // 1. Obtener el ID a eliminar
@@ -52,6 +26,7 @@ if (!$id) {
 
 // Conexión a la base de datos local
 $dbconn = getConnection();
+requireDbConnection($dbconn);
 
 try {
     // ===============================

@@ -7,19 +7,17 @@
 function checkIdentificaciones($cedula)
 {
     try {
-        $username = 'personas';
-        $password = '@g3137c0120';
-        $URL = 'https://ws.mspbs.gov.py/api/getPersonas.php?cedula=' . $cedula;
+        $URL = APP_IDENTIFICACIONES_URL . '?cedula=' . urlencode($cedula);
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
-            'Authorization: Basic ' . base64_encode("$username:$password")
+            'Authorization: Basic ' . base64_encode(APP_IDENTIFICACIONES_USER . ':' . APP_IDENTIFICACIONES_PASSWORD)
         ));
         curl_setopt($ch, CURLOPT_URL, $URL);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
         $res = curl_exec($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);   //get status code

@@ -14,8 +14,7 @@ function routeHandler($method, $route)
             
             
 
-            '/paciente/search' => '/view/paciente/index.php',
-            '/paciente/view' => '/view/track1/viewer3.php',         
+            '/paciente/search' => '/view/paciente/index.php',       
             '/itti67/search' => '/view/paciente/ips2.php',
             '/ips/view' => '/view/paciente/viewer2.php',
             //'/icvp/vaccine' => '/view/ICVP/create.php',
@@ -34,14 +33,14 @@ function routeHandler($method, $route)
             '/organizacion/list' => '/view/organizacion/list.php',
             '/organizacion/create' => '/view/organizacion/create.php',
             '/organizacion/edit' => '/view/organizacion/edit.php',
-            //fhir
-            '/fhir/list' => '/view/fhir/index.php',
-            '/fhir/create' => '/view/fhir/create.php',
-
+           
             //Datos
             '/datos/personal' => '/view/datos/personal.php',
             '/datos/paciente' => '/view/datos/paciente.php',
             '/datos/servicio' => '/view/datos/servicio.php',
+            //usuarios
+            '/usuarios/list' => '/view/usuario/index.php',
+            '/usuarios/create' => '/view/usuario/create.php',
         ],
         'POST' => [
             // Define tus rutas POST aquí

@@ -6,7 +6,7 @@ include('./helperIdentificaciones.php');
 
 
 // Check if user is logged
-if($_SESSION['idUsuario']|| (isset($_POST['search']) AND $_POST['search'] == 'SI'))
+if (!empty($_SESSION['idUsuario']) || (isset($_POST['search']) && $_POST['search'] == 'SI'))
 {
     $cedula = str_replace(array('.', ' '), '' , $_POST['cedula']);
     $cedula = empty($cedula) ? 0 : $cedula;

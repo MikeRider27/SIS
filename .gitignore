@@ -16,3 +16,6 @@ vendor/
 
 #INGNORE CONFIG DE CORE
 src/core/config.php
+
+# Variables de entorno con credenciales locales
+.env

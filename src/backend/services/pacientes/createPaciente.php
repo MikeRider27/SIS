@@ -5,36 +5,10 @@ header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 
 include('/var/www/html/core/connection.php');
+require_once('/var/www/html/core/FhirClient.php');
 require_once('/var/www/html/vendor/autoload.php');
 
 use Ramsey\Uuid\Uuid;
-
-function sendFHIRRequest($url, $resource, $method) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/fhir+json',
-        'Accept: application/fhir+json'
-    ]);
-    
-    if ($resource !== null) {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($resource));
-    }
-
-    $response = curl_exec($ch);
-    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    if (curl_errno($ch)) {
-        $error = 'Error de cURL: ' . curl_error($ch);
-        curl_close($ch);
-        return ['status' => 500, 'body' => json_encode(['error' => $error])];
-    }
-    curl_close($ch);
-
-    return ['status' => $httpcode, 'body' => $response];
-}
 
 // ===============================
 // 1. Captura de datos del formulario
@@ -59,6 +33,7 @@ if (!$cedula || !$tipo_documento) {
 
 // Conexión a la base de datos local
 $dbconn = getConnection();
+requireDbConnection($dbconn);
 
 // Mapear sexo
 $sexoFHIR = "unknown";
@@ -141,8 +116,8 @@ $patientResource = [
         "div" => "<div xmlns=\"http://www.w3.org/1999/xhtml\">
                     <p class=\"res-header-id\"><b>Generated Narrative: Patient</b></p>
                     <div style=\"background-color: #e6e6ff; padding: 10px; border: 1px solid #661aff;\">
-                        {$pnombre} {$papellido} " . ucfirst($sexoFHIR) . 
-                        ", DoB: {$fecha_nacimiento} ( {$display}: {$cedula} )
+                        " . fhirEscape($pnombre . " " . $papellido) . " " . fhirEscape(ucfirst($sexoFHIR)) .
+                        ", DoB: " . fhirEscape($fecha_nacimiento) . " ( " . fhirEscape($display) . ": " . fhirEscape($cedula) . " )
                     </div>
                  </div>"
     ],
@@ -203,12 +178,8 @@ try {
     }
 
     $validationResponse = json_decode($validation['body'], true);
-    if (isset($validationResponse['issue'])) {
-        foreach ($validationResponse['issue'] as $issue) {
-            if (in_array($issue['severity'], ['error','fatal'])) {
-                throw new Exception('Validación FHIR fallida: ' . json_encode($validationResponse));
-            }
-        }
+    if (fhirHasFatalIssues($validationResponse)) {
+        throw new Exception('Validación FHIR fallida: ' . json_encode($validationResponse));
     }
 
     // ===============================

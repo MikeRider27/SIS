@@ -1,6 +1,7 @@
-INSERT INTO roles (name, description) 
-VALUES 
-    ('admin', 'Administrador del sistema')
+INSERT INTO roles (name, description)
+VALUES
+    ('admin', 'Administrador del sistema'),
+    ('operador', 'Operador de carga de datos (pacientes, profesionales, organizaciones)')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO users (
@@ -13,13 +14,30 @@ INSERT INTO users (
     email_verified
 ) VALUES (
     'ADMIN',
-    'admin@example.com',    
-    '8cb2237d0679ca88db6464eac60da96345513964', -- sha1 de '12345'
+    'admin@example.com',
+    '$2y$10$fpnMnFt/tm3nRvGunICbru.9vLGqyxJQcfQouzQx8BCAhEvTdsmp.', -- bcrypt de '12345' (cambiar en el primer inicio de sesión)
     'Administrador',
     'Del Sistema',
     (SELECT id FROM roles WHERE name = 'admin'),
     TRUE
 ) ON CONFLICT (username) DO NOTHING;
+
+INSERT INTO permissions (code, label)
+VALUES
+    ('rda_visor', 'Visor / Consulta RDA'),
+    ('pacientes', 'Pacientes'),
+    ('profesionales', 'Profesionales'),
+    ('organizaciones', 'Organizaciones'),
+    ('usuarios', 'Gestión de Usuarios')
+ON CONFLICT (code) DO NOTHING;
+
+-- El usuario ADMIN sembrado recibe todos los permisos existentes
+INSERT INTO user_permissions (user_id, permission_id)
+SELECT u.id, p.id
+FROM users u
+CROSS JOIN permissions p
+WHERE u.username = 'ADMIN'
+ON CONFLICT (user_id, permission_id) DO NOTHING;
 
 INSERT INTO document_type (id, "name")
 VALUES
@@ -98,4 +116,24 @@ VALUES
 ('E019', 'RIVASTIGMINA'),
 ('E020', 'ACIDO ACETILSALICÍLICO');
 
+
+INSERT INTO icd10 (icd10_code_part_a, icd10_code_part_b, name)
+VALUES
+('A09', 'X', 'DIARREA Y GASTROENTERITIS DE PRESUNTO ORIGEN INFECCIOSO'),
+('B34', '9', 'INFECCION VIRAL, NO ESPECIFICADA'),
+('E11', '9', 'DIABETES MELLITUS TIPO 2, SIN COMPLICACIONES'),
+('E78', '5', 'HIPERLIPIDEMIA, NO ESPECIFICADA'),
+('I10', 'X', 'HIPERTENSION ESENCIAL (PRIMARIA)'),
+('I25', '9', 'ENFERMEDAD ISQUEMICA CRONICA DEL CORAZON, NO ESPECIFICADA'),
+('J00', 'X', 'RINOFARINGITIS AGUDA (RESFRIADO COMUN)'),
+('J06', '9', 'INFECCION AGUDA DE LAS VIAS RESPIRATORIAS SUPERIORES, NO ESPECIFICADA'),
+('J45', '9', 'ASMA, NO ESPECIFICADA'),
+('K29', '7', 'GASTRITIS, NO ESPECIFICADA'),
+('K59', '0', 'ESTRENIMIENTO'),
+('M54', '5', 'LUMBAGO NO ESPECIFICADO'),
+('N39', '0', 'INFECCION DE VIAS URINARIAS, SITIO NO ESPECIFICADO'),
+('R50', '9', 'FIEBRE, NO ESPECIFICADA'),
+('R51', 'X', 'CEFALEA'),
+('Z00', '0', 'EXAMEN MEDICO GENERAL')
+ON CONFLICT (icd10_code_part_a, icd10_code_part_b) DO NOTHING;
 

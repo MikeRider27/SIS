@@ -1,20 +1,24 @@
-<?php include('/var/www/html/view/includes/header.php'); ?>
-<!-- Content Wrapper. Contains page content -->
+<?php
+include('/var/www/html/view/includes/header.php');
+
+if (!in_array('usuarios', $_SESSION['permisos'] ?? [], true)) {
+    echo '<div class="content-wrapper"><div class="alert alert-danger m-4">No tiene permisos para acceder a esta sección.</div></div>';
+    include('/var/www/html/view/includes/footer.php');
+    exit;
+}
+?>
+
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-12">
           <h1>Listado de Usuarios</h1>
-
         </div>
-
       </div>
-    </div><!-- /.container-fluid -->
+    </div>
   </section>
 
-  <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
       <div class="row">
@@ -22,307 +26,205 @@
           <div class="card">
             <div class="card-header py-3">
               <div class="float-left">
-                <h3 class="card-title" style="display: inline-block;">Usuarios</h3>
+                <h3 class="card-title" style="display:inline-block;">Usuarios</h3>
               </div>
               <div class="float-right">
                 <a href="/usuarios/create" class="btn btn-success"><i class="fas fa-plus"></i> Nuevo Usuario</a>
               </div>
             </div>
-            <!-- /.card-header -->
             <div class="card-body">
-              <table id="listado" class="table table-bordered table-striped">
+              <table id="listado" class="table table-bordered table-striped" style="width:100%">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
                     <th>Usuario</th>
-                    <th>Correo Electronico</th>
-                    <th>Dependencia</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
                     <th>Rol</th>
                     <th>Estado</th>
                     <th>Acción</th>
                   </tr>
                 </thead>
-                <tfoot>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Usuario</th>
-                    <th>Correo Electronico</th>
-                    <th>Dependencia</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Acción</th>
-                  </tr>
-                </tfoot>
+                <tbody></tbody>
               </table>
             </div>
-            <!-- /.card-body -->
           </div>
-          <!-- /.card -->
         </div>
-        <!-- /.col -->
       </div>
-      <!-- /.row -->
     </div>
-    <!-- /.container-fluid -->
   </section>
-  <!-- /.content -->
 </div>
-<!-- /.content-wrapper -->
 
-<?php
-include('/var/www/html/view/includes/footer.php');
-?>
-<!-- Page specific script -->
+<!-- Modal de Permisos -->
+<div class="modal fade" id="permisosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Menús con acceso</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="permisosModalBody">
+        <p class="text-muted">Cargando...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnGuardarPermisos">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<?php include('/var/www/html/view/includes/footer.php'); ?>
 
 <script>
-  $(function() {
+$(function () {
+  toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 5000 };
 
-    Reseteo = function(id) {
-      swal({
-        title: "Confirmar",
-        text: "Está seguro de resetear este Usuario?",
-        type: "warning",
-        confirmButtonText: "SI",
-        confirmButtonColor: "#5cb85c",
-        showCancelButton: true,
-        cancelButtonText: "NO",
-      }, function(isConfirm) {
-        if (isConfirm) {
-          $.ajax({
-            url: '../../backend/usuarios.php',
-            method: 'POST',
-            data: 'accion=reseteo&id=' + id,
-            success: function(data) {
-              try {
-                response = JSON.parse(data);
-                if (response.status == "success") {
-                  setTimeout(function() {
-                    swal({
-                        title: "Éxito!",
-                        text: response.message,
-                        type: "success",
-                        confirmButtonText: "Ok",
-                        closeOnConfirm: false
-                      },
-                      function() {
-                        location.reload();
-                      });
-                  }, 2000);
-                } else {
-                  swal("Advertencia", "Ocurrio un error intentado resolver la solicitud. Por favor contacte con el administrador del sistema", "warning");
-                }
-              } catch (error) {
-                swal("Advertencia", "Ocurrio un error intentado resolver la solicitud. Por favor contacte con el administrador del sistema", "warning");
-              }
-            },
-            error: function(data) {
-              swal("Advertencia", "Ocurrio un error intentado comunicarse con el servidor. Por favor contacte con el administrador de la red", "warning");
-            }
-          });
+  var table = $('#listado').DataTable({
+    responsive: true,
+    lengthChange: false,
+    autoWidth: false,
+    ajax: {
+      url: '/backend/services/usuarios/listUsuario.php',
+      dataSrc: function (json) {
+        if (json.status !== 'success') {
+          toastr.error(json.message || 'No se pudo cargar la lista de usuarios');
+          return [];
         }
-      })
-    };
-
-    Desactivar = function(id) {
-      swal({
-        title: "Confirmar",
-        text: "Está seguro de Inactivar este Usuario?",
-        type: "warning",
-        confirmButtonText: "SI",
-        confirmButtonColor: "#5cb85c",
-        showCancelButton: true,
-        cancelButtonText: "NO",
-      }, function(isConfirm) {
-        if (isConfirm) {
-          $.ajax({
-            url: '../../backend/usuarios.php',
-            method: 'POST',
-            data: 'accion=desactivar&id=' + id,
-            success: function(data) {
-              try {
-                response = JSON.parse(data);
-                if (response.status == "success") {
-                  setTimeout(function() {
-                    swal({
-                        title: "Éxito!",
-                        text: response.message,
-                        type: "success",
-                        confirmButtonText: "Ok",
-                        closeOnConfirm: false
-                      },
-                      function() {
-                        location.reload();
-                      });
-                  }, 2000);
-                } else {
-                  swal("Advertencia", "Ocurrio un error intentado resolver la solicitud. Por favor contacte con el administrador del sistema", "warning");
-                }
-              } catch (error) {
-                swal("Advertencia", "Ocurrio un error intentado resolver la solicitud. Por favor contacte con el administrador del sistema", "warning");
-              }
-            },
-            error: function(data) {
-              swal("Advertencia", "Ocurrio un error intentado comunicarse con el servidor. Por favor contacte con el administrador de la red", "warning");
-            }
-          });
-        }
-      })
-    };
-
-    Activar = function(id) {
-      swal({
-        title: "Confirmar",
-        text: "Está seguro de Activar este Usuario?",
-        type: "warning",
-        confirmButtonText: "SI",
-        confirmButtonColor: "#5cb85c",
-        showCancelButton: true,
-        cancelButtonText: "NO",
-      }, function(isConfirm) {
-        if (isConfirm) {
-          $.ajax({
-            url: '../../backend/usuarios.php',
-            method: 'POST',
-            data: 'accion=activar&id=' + id,
-            success: function(data) {
-              try {
-                response = JSON.parse(data);
-                if (response.status == "success") {
-                  setTimeout(function() {
-                    swal({
-                        title: "Éxito!",
-                        text: response.message,
-                        type: "success",
-                        confirmButtonText: "Ok",
-                        closeOnConfirm: false
-                      },
-                      function() {
-                        location.reload();
-                      });
-                  }, 2000);
-                } else {
-                  swal("Advertencia", "Ocurrio un error intentado resolver la solicitud. Por favor contacte con el administrador del sistema", "warning");
-                }
-              } catch (error) {
-                swal("Advertencia", "Ocurrio un error intentado resolver la solicitud. Por favor contacte con el administrador del sistema", "warning");
-              }
-            },
-            error: function(data) {
-              swal("Advertencia", "Ocurrio un error intentado comunicarse con el servidor. Por favor contacte con el administrador de la red", "warning");
-            }
-          });
-        }
-      })
-    };
-
-    function handleAjaxError(xhr, textStatus, error) {
-      if (textStatus === "timeout") {
-        toastr.warning('Ocurrió un error al intentar comunicarse con el servidor. Por favor contacte con el administrador de la red.');
-        document.getElementById("listado_processing").style.display = "none";
-      } else {
-        toastr.warning('Ocurrió un error al intentar comunicarse con el servidor. Por favor contacte con el administrador del sistema.');
-        document.getElementById("listado_processing").style.display = "none";
+        return json.usuarios;
+      },
+      error: function () {
+        toastr.error('Error al comunicarse con el servidor.');
       }
+    },
+    columns: [
+      { data: 'username' },
+      { data: 'nombre' },
+      { data: 'email' },
+      { data: 'rol' },
+      { data: 'estado' },
+      {
+        data: null,
+        orderable: false,
+        render: function (data, type, row) {
+          var buttons = '<button class="btn btn-sm btn-primary btnPermisos" data-id="' + row.id + '" data-permisos=\'' + JSON.stringify(row.permisos || []) + '\' title="Menús con acceso"><i class="fas fa-list-check"></i> Permisos</button> ';
+          buttons += '<button class="btn btn-sm btn-warning btnResetear" data-id="' + row.id + '" title="Resetear contraseña"><i class="fas fa-unlock"></i></button> ';
+          if (row.is_active) {
+            buttons += '<button class="btn btn-sm btn-danger btnDesactivar" data-id="' + row.id + '" title="Desactivar"><i class="fas fa-lock"></i></button>';
+          } else {
+            buttons += '<button class="btn btn-sm btn-success btnActivar" data-id="' + row.id + '" title="Activar"><i class="fas fa-unlock-alt"></i></button>';
+          }
+          return buttons;
+        }
+      }
+    ],
+    language: {
+      emptyTable: 'No hay usuarios registrados',
+      zeroRecords: 'No se encontraron resultados',
+      search: 'Filtrar:',
+      lengthMenu: 'Mostrar _MENU_ registros',
+      info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+      paginate: { first: 'Primero', last: 'Último', next: 'Siguiente', previous: 'Anterior' }
     }
+  });
 
-    var table = $('#listado').DataTable({
-      "responsive": true,
-      "lengthChange": false,
-      "autoWidth": false,
-      "ajax": {
-        url: "../../backend/listado/listaUsuarios.php",
-        timeout: 15000,
-        dataSrc: function(json) {
-          if (json.status === "error") {
-            alert(json.message);
-            return [];
+  function accionUsuario(id, accion, confirmMsg, successReload) {
+    if (!confirm(confirmMsg)) return;
+    $.ajax({
+      url: '/backend/services/usuarios/updateUsuario.php',
+      method: 'POST',
+      data: { id: id, accion: accion },
+      dataType: 'json',
+      success: function (response) {
+        if (response.status === 'success') {
+          if (response.temp_password) {
+            toastr.success(response.message + ' Contraseña temporal: ' + response.temp_password, '', { timeOut: 0, extendedTimeOut: 0 });
+          } else {
+            toastr.success(response.message);
           }
-          return json.data;
-        },
-        error: function(xhr, textStatus, error) {
-          let errorMessage;
-          switch (textStatus) {
-            case 'timeout':
-              errorMessage = 'La solicitud ha superado el tiempo de espera. Inténtalo de nuevo.';
-              break;
-            case 'abort':
-              errorMessage = 'La solicitud ha sido abortada.';
-              break;
-            default:
-              errorMessage = 'Ocurrió un error: ' + error;
-          }
-          handleAjaxError(xhr, textStatus, error);
-          alert(errorMessage);
+          if (successReload) table.ajax.reload(null, false);
+        } else {
+          toastr.error(response.message);
         }
       },
-      "columns": [{
-          "data": "id"
-        },
-        {
-          "data": "nombre"
-        },
-        {
-          "data": "nick"
-        },
-        {
-          "data": "email"
-        },
-        {
-          "data": "dependencia"
-        },
-        {
-          "data": "rol"
-        },
-        {
-          "data": "estado"
-        },
-        {
-          "data": "id"
+      error: function () {
+        toastr.error('Error al comunicarse con el servidor.');
+      }
+    });
+  }
+
+  $('#listado tbody').on('click', '.btnDesactivar', function () {
+    accionUsuario($(this).data('id'), 'desactivar', '¿Desactivar este usuario?', true);
+  });
+
+  $('#listado tbody').on('click', '.btnActivar', function () {
+    accionUsuario($(this).data('id'), 'activar', '¿Activar este usuario?', true);
+  });
+
+  $('#listado tbody').on('click', '.btnResetear', function () {
+    accionUsuario($(this).data('id'), 'reseteo', '¿Resetear la contraseña de este usuario?', false);
+  });
+
+  // --- Modal de permisos ---
+  var permisosDisponibles = null;
+  var usuarioIdActual = null;
+
+  $('#listado tbody').on('click', '.btnPermisos', function () {
+    usuarioIdActual = $(this).data('id');
+    var permisosUsuario = $(this).data('permisos') || [];
+
+    $('#permisosModalBody').html('<p class="text-muted">Cargando...</p>');
+    $('#permisosModal').modal('show');
+
+    function pintarCheckboxes() {
+      var html = permisosDisponibles.map(function (p) {
+        var checked = permisosUsuario.indexOf(p.code) !== -1 ? 'checked' : '';
+        return '<div class="form-check">' +
+          '<input type="checkbox" class="form-check-input permiso-check" id="modal_permiso_' + p.code + '" value="' + p.code + '" ' + checked + '>' +
+          '<label class="form-check-label" for="modal_permiso_' + p.code + '">' + p.label + '</label>' +
+          '</div>';
+      }).join('');
+      $('#permisosModalBody').html(html || '<p class="text-muted">No hay permisos configurados.</p>');
+    }
+
+    if (permisosDisponibles) {
+      pintarCheckboxes();
+    } else {
+      $.getJSON('/backend/services/usuarios/listPermisos.php', function (json) {
+        if (json.status === 'success') {
+          permisosDisponibles = json.permisos;
+          pintarCheckboxes();
+        } else {
+          $('#permisosModalBody').html('<p class="text-danger">' + (json.message || 'Error al cargar los permisos') + '</p>');
         }
-      ],
-      "columnDefs": [{
-        "render": function(number_row, type, row) {
-          var buttons = '<div class="row">' +
-            '<button class="btn btn-warning" onclick="Reseteo(' + row.id + ');"><i class="fas fa-unlock"></i></button>';
-          if (row.code === 1) {
-            buttons += '<button class="btn btn-danger" onclick="Desactivar(' + row.id + ');"> <i class="fas fa-lock"></i></button>';
-          } 
-          if (row.code === 2){
-            buttons += '<button class="btn btn-success" onclick="Activar(' + row.id + ');"> <i class="fas fa-unlock"></i></button></div>';
-          }
-          buttons += '</div>';
-          return buttons;
-        },
-        "orderable": false,
-        "targets": 7 // columna modificar usuario
-      }],
-      "language": {
-        "decimal": "",
-        "emptyTable": "No hay registros en la tabla",
-        "info": "Se muestran _START_ a _END_ de _TOTAL_ registros",
-        "infoEmpty": "Se muestran 0 a 0 de 0 registros",
-        "infoFiltered": "(filtrado de _MAX_ registros totales)",
-        "infoPostFix": "",
-        "thousands": ",",
-        "lengthMenu": "Mostrar _MENU_ registros",
-        "loadingRecords": "Cargando...",
-        "processing": "Procesando...",
-        "search": "Filtrar por (Nombre):",
-        "zeroRecords": "No se encontraron registros que coincidan",
-        "paginate": {
-          "first": "Primero",
-          "last": "Último",
-          "next": "Siguiente",
-          "previous": "Anterior"
-        },
-        "aria": {
-          "sortAscending": ": activar para ordenar la columna ascendente",
-          "sortDescending": ": activar para ordenar la columna descendente"
+      }).fail(function () {
+        $('#permisosModalBody').html('<p class="text-danger">Error al comunicarse con el servidor.</p>');
+      });
+    }
+  });
+
+  $('#btnGuardarPermisos').on('click', function () {
+    var seleccionados = $('.permiso-check:checked').map(function () { return this.value; }).get();
+
+    $.ajax({
+      url: '/backend/services/usuarios/updateUsuario.php',
+      method: 'POST',
+      data: { id: usuarioIdActual, accion: 'actualizar_permisos', permisos: seleccionados },
+      dataType: 'json',
+      success: function (response) {
+        if (response.status === 'success') {
+          toastr.success(response.message);
+          $('#permisosModal').modal('hide');
+          table.ajax.reload(null, false);
+        } else {
+          toastr.error(response.message);
         }
+      },
+      error: function () {
+        toastr.error('Error al comunicarse con el servidor.');
       }
     });
   });
+});
 </script>

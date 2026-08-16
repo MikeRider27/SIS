@@ -2,19 +2,16 @@
 // Función para enviar el JSON al servidor FHIR
 function sendToFhirServer($fhirServerUrl, $jsonOutput)
 {
-    // Define la URL del servidor FHIR
-    $fhirUrl = $fhirServerUrl; 
-   
-    // Configurar la solicitud cURL
-    $ch = curl_init($fhirUrl);
+    $ch = curl_init($fhirServerUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Accept: application/json'
+            'Content-Type: application/fhir+json',
+            'Accept: application/fhir+json'
         ],
         CURLOPT_POSTFIELDS => $jsonOutput,
+        CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT => 30, // evita bloqueos si el servidor no responde
     ]);
 
@@ -24,11 +21,13 @@ function sendToFhirServer($fhirServerUrl, $jsonOutput)
     if ($response === false) {
         $errorMsg = 'Error al enviar los datos al servidor FHIR: ' . curl_error($ch);
         curl_close($ch);
-        return ['error' => $errorMsg];
+        return ['status' => 0, 'error' => $errorMsg];
     }
 
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return $response;
+
+    return ['status' => $status, 'body' => $response];
 }
 
 // Función para procesar la respuesta del servidor FHIR

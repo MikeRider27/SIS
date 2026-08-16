@@ -1,28 +1,28 @@
 <?php
 header('Content-Type: application/json');
 
+include('/var/www/html/core/connection.php');
+require_once('/var/www/html/core/FhirClient.php');
+
 $id = $_GET['id'] ?? null;
 if (!$id) {
     echo json_encode(['status' => 'error', 'message' => 'Falta ID de Practitioner']);
     exit;
 }
 
-$url = APP_FHIR_SERVER . "/fhir/Practitioner/" . urlencode($id);
+$dbconn = getConnection();
+requireDbConnection($dbconn);
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/fhir+json']);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+$url = APP_FHIR_SERVER . "/Practitioner/" . urlencode($id);
+$deletion = sendFHIRRequest($url, null, 'DELETE');
 
-$response = curl_exec($ch);
-$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($status == 200 || $status == 204) {
-    echo json_encode(['status' => 'success', 'message' => 'Practitioner eliminado']);
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'Error al eliminar', 'details' => json_decode($response, true)]);
+if (!in_array($deletion['status'], [200, 204, 404], true)) {
+    echo json_encode(['status' => 'error', 'message' => 'Error al eliminar', 'details' => json_decode($deletion['body'], true)]);
+    exit;
 }
+
+$stmt = $dbconn->prepare("DELETE FROM professional WHERE code = :code");
+$stmt->bindValue(':code', $id, PDO::PARAM_STR);
+$stmt->execute();
+
+echo json_encode(['status' => 'success', 'message' => 'Practitioner eliminado', 'local_deleted' => $stmt->rowCount() > 0]);

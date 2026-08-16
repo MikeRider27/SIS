@@ -1,8 +1,5 @@
 <?php
 session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 require_once('/var/www/html/core/connection.php');
 $dbconn = getConnection();
@@ -128,20 +125,26 @@ if (isset($_SESSION['idUsuario'])) {
             }
 
             // Enviar el FHIR Bundle al servidor
-            $fhirResponse = sendToFhirServer(APP_FHIR_SERVER, $jsonOutput);
-            
-            // 🔹 CORRECCIÓN PRINCIPAL: Verificar si hay error
-            if (is_array($fhirResponse) && isset($fhirResponse['error'])) {
-                echo json_encode(['status' => 'error', 'message' => $fhirResponse['error']]);
+            $fhirResult = sendToFhirServer(APP_FHIR_SERVER, $jsonOutput);
+
+            if (!empty($fhirResult['error'])) {
+                echo json_encode(['status' => 'error', 'message' => $fhirResult['error']]);
                 exit();
             }
 
             // 🔹 DECODIFICAR LA RESPUESTA FHIR
-            $fhirData = json_decode($fhirResponse, true);
-            
+            $fhirData = json_decode($fhirResult['body'], true);
+
             // Verificar si la decodificación fue exitosa
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new Exception('Error decodificando respuesta FHIR: ' . json_last_error_msg());
+            }
+
+            // El servidor FHIR puede responder 4xx/5xx con un JSON válido (OperationOutcome);
+            // sin este chequeo se confirmaba la consulta local aunque FHIR la hubiera rechazado.
+            if ($fhirResult['status'] < 200 || $fhirResult['status'] >= 300) {
+                $detail = $fhirData['issue'][0]['diagnostics'] ?? json_encode($fhirData);
+                throw new Exception('El servidor FHIR rechazó el bundle (HTTP ' . $fhirResult['status'] . '): ' . $detail);
             }
 
             // Confirmar la transacción

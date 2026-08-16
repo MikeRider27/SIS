@@ -71,23 +71,18 @@ include('/var/www/html/view/includes/footer.php');
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
 
 <style>
-  .CodeMirror { 
-    height: auto !important; 
+  .CodeMirror {
+    height: calc(100vh - 260px);
     min-height: 400px;
-    font-size: 14px; 
+    font-size: 14px;
     border: 1px solid #ddd;
   }
-  
+
   .CodeMirror-scroll {
-    height: auto !important;
-    overflow-y: hidden !important;
+    overflow-y: auto !important;
     overflow-x: auto !important;
   }
-  
-  .CodeMirror-sizer {
-    min-height: auto !important;
-  }
-  
+
   .cm-line {
     line-height: 1.4;
   }
@@ -107,11 +102,9 @@ include('/var/www/html/view/includes/footer.php');
       lineNumbers: true,
       tabSize: 2,
       matchBrackets: true,
-      viewportMargin: Infinity,
       lineWrapping: true
     });
 
-    // Forzar el redimensionamiento para eliminar scroll
     setTimeout(() => {
       editor.refresh();
     }, 100);
@@ -119,7 +112,7 @@ include('/var/www/html/view/includes/footer.php');
     const bundleId = <?php echo $id ? '"' . htmlspecialchars($id, ENT_QUOTES, 'UTF-8') . '"' : '""'; ?>;
 
     if (bundleId) {
-      const url = `https://fhir-conectaton.mspbs.gov.py/fhir/Bundle/${bundleId}`;
+      const url = `/backend/services/track1/getBundle.php?id=${encodeURIComponent(bundleId)}`;
       fetch(url)
         .then(r => { if (!r.ok) throw new Error('Error al obtener el Bundle'); return r.json(); })
         .then(data => {
@@ -224,9 +217,12 @@ include('/var/www/html/view/includes/footer.php');
     const composition = data.entry.map(e => e.resource).find(r => r && r.resourceType === 'Composition') || null;
     const patient = composition && composition.subject ? deref(composition.subject) : (data.entry.map(e => e.resource).find(r => r.resourceType === 'Patient') || null);
     const custodian = composition && composition.custodian ? deref(composition.custodian) : (data.entry.map(e => e.resource).find(r => r.resourceType === 'Organization') || null);
+    const author = (composition && Array.isArray(composition.author) && composition.author[0])
+      ? deref(composition.author[0])
+      : (data.entry.map(e => e.resource).find(r => r && r.resourceType === 'Practitioner') || null);
 
     // Encabezado
-    displayPatientHeader(patient, custodian, composition);
+    displayPatientHeader(patient, custodian, composition, author);
 
     // Render según secciones declaradas
     if (composition && Array.isArray(composition.section) && composition.section.length) {
@@ -321,10 +317,15 @@ include('/var/www/html/view/includes/footer.php');
       </div>`;
   }
 
-  function displayPatientHeader(patient, org, composition) {
-    const patientName = patient && patient.name && patient.name[0]
-      ? (patient.name[0].text || `${(patient.name[0].given || []).join(' ')} ${patient.name[0].family || ''}`.trim())
-      : 'No disponible';
+  function displayPatientHeader(patient, org, composition, author) {
+    function nombreCompleto(res) {
+      if (!res || !res.name || !res.name[0]) return null;
+      const n = res.name[0];
+      return n.text || `${(n.given || []).join(' ')} ${n.family || ''}`.trim() || null;
+    }
+
+    const patientName = nombreCompleto(patient) || 'No disponible';
+    const authorName = nombreCompleto(author) || 'No disponible';
 
     // Parseo robusto de fecha sin desfase UTC
     function parseFlexibleDate(input) {
@@ -386,7 +387,8 @@ include('/var/www/html/view/includes/footer.php');
             </div>
             <div class="col-sm-6">
               <p class="mb-1"><strong>Última actualización:</strong> ${escapeHtml(String(compositionDate))}</p>
-              <p class="mb-1"><strong>Autor / Custodio:</strong> ${escapeHtml(String(organizationName))}</p>
+              <p class="mb-1"><strong>Autor:</strong> ${escapeHtml(authorName)}</p>
+              <p class="mb-1"><strong>Custodio:</strong> ${escapeHtml(String(organizationName))}</p>
             </div>
           </div>
         </div>
